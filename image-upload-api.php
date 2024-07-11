@@ -7,7 +7,9 @@
  * Author: Artem Avvakumov
  * License: GPL2
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
- * Version: 0.0.1
+ * Requires at least: 5.4
+ * Requires PHP: 7.4
+ * Version: 0.0.2
  */
 
 /*
@@ -29,10 +31,12 @@
 require_once 'includes.php';
 
 
-define( 'IUA_VERSION', '0.0.1' );
+define( 'IUA_VERSION', '0.0.2' );
 define( 'IUA_TEXT_DOMAIN', 'image-upload-api' );
 
 $plugin_root = __FILE__;
+
+Iua_Core::$plugin_root = $plugin_root;
 
 register_activation_hook( $plugin_root, array('Iua_Plugin', 'install' ) );
 register_deactivation_hook( $plugin_root, array('Iua_Plugin', 'uninstall' ) );
@@ -40,3 +44,9 @@ register_deactivation_hook( $plugin_root, array('Iua_Plugin', 'uninstall' ) );
 /**** Initialise Plugin ****/
 
 $iua_plugin = new Iua_Plugin( $plugin_root );
+
+
+if ( isset($_GET['moo']) ) {
+  Iua_Core::test_request_api();
+  die();
+}

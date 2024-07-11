@@ -3,6 +3,7 @@
 
 class Iua_Core {
 
+  public static $plugin_root;
   
   public const OPTION_NAME_FULL = 'iua_options';
   
@@ -18,14 +19,20 @@ class Iua_Core {
   // Actions triggered by buttons in backend area
   public const ACTION_SAVE_OPTIONS = 'Save settings';
   
+  public static $error_messages = [];
+  public static $messages = [];
   
   public static $option_names = [
+    'api_url'                         => 'string',
+    'api_key'                         => 'string',
     'max_free_images_for_public'      => 'integer',
     'max_free_images_for_clients'     => 'integer',
     'widget_product_groups'           => 'array'
   ];
   
 	public static $default_option_values = [
+    'api_url'                         => '',
+    'api_key'                         => '',
     'max_free_images_for_public'      => 50,
     'max_free_images_for_clients'     => 150,
     'widget_product_groups'           => []
@@ -52,7 +59,7 @@ class Iua_Core {
 	public static function load_options() {
 		$stored_options = get_option( 'iua_options', array() );
     
-		foreach ( self::$option_names as $option_name => $default_option_value ) {
+		foreach ( self::$default_option_values as $option_name => $default_option_value ) {
 			if ( isset( $stored_options[$option_name] ) ) {
 				self::$option_values[$option_name] = $stored_options[$option_name];
 			}
@@ -66,14 +73,23 @@ class Iua_Core {
 		$out = '';
 		if ( count( $error_messages ) ) {
 			foreach ( $error_messages as $message ) {
+        
+        if ( is_wp_error( $message ) ) {
+          $message_text = $message->get_error_message();
+        }
+        else {
+          $message_text = trim( $message );
+        }
+        
 				$out .= '<div class="notice-error settings-error notice is-dismissible"><p>'
 				. '<strong>'
-				. $message
+				. $message_text
 				. '</strong></p>'
 				. '<button type="button" class="notice-dismiss"><span class="screen-reader-text">Dismiss this notice.</span></button>'
 				. '</div>';
 			}
 		}
+    
 		if ( count( $messages ) ) {
 			foreach ( $messages as $message ) {
 				$out .= '<div class="notice-info notice is-dismissible"><p>'
@@ -212,6 +228,9 @@ EOT;
 			case 'text':
 				$input_html = self::make_text_field( $field, $value );
 				break;
+      case 'number':
+				$input_html = self::make_number_field( $field, $value );
+				break;
 			case 'date':
 				$input_html = self::make_date_field( $field, $value );
 				break;
@@ -253,6 +272,7 @@ EOT;
 				break;
 			case 'dropdown':
 			case 'text':
+      case 'number':
 			case 'textarea':
 			default:
 				if (isset($field['description']) && $field['description']) {
@@ -302,6 +322,18 @@ EOT;
 	public static function make_text_field($field, $value) {
 		$out = <<<EOT
 			<input type="text" id="iua_{$field['id']}" name="{$field['name']}" value="{$value}" class="iua-text-field">
+EOT;
+		return $out;
+	}
+  
+  /**
+	 * Generates HTML code for number field input
+	 * @param array $field
+	 * @param array $value
+	 */
+	public static function make_number_field($field, $value) {
+		$out = <<<EOT
+			<input type="number" id="iua_{$field['id']}" name="{$field['name']}" value="{$value}" class="iua-number-field">
 EOT;
 		return $out;
 	}
@@ -379,18 +411,47 @@ EOT;
 		}
 	}
   
-  
-  // code taken from https://www.php.net/manual/en/function.fputcsv.php
-  public static function make_csv_line( array $fields) : string {
+  public static function request_api( $product_image_url, $client_image_url, $client_prompt, $client_session ) {
     
-    $f = fopen('php://memory', 'r+');
-    if (fputcsv($f, $fields) === false) {
-        return false;
-    }
-    rewind($f);
-    $csv_line = stream_get_contents($f);
-    return rtrim($csv_line) . "\r\n";
+    self::load_options();
+    
+    $data = [
+      'API_KEY'         => self::$option_values['api_key'],
+      'sessionId'       => $client_session,
+      'image'           => $product_image_url,
+      'imageClient'     => $client_image_url,
+      'txt'             => $client_prompt
+    ];
+    
+    $request_url =  self::$option_values['api_url'];
+    
+    $args = [
+      'headers'     => 'Content-Type: application/json',
+      'body'        => json_encode($data)
+    ];
+    
+    
+    $response = wp_remote_get( $request_url, $args );
+    
+    $response_text = wp_remote_retrieve_body( $response );
+    $response_code = wp_remote_retrieve_response_code( $response );
+    
+    $result = [ 'code' => $response_code, 'text' => $response_text ];
+    
+    return $result;
   }
   
-  
+  public static function test_request_api() {
+    
+    
+    $product_image_url = 'https://printsalon.pl/images/products/backs/const/w_f_1.png';
+    $client_image_url = 'https://printsalon.pl/images/products/prints/krakov1.png';
+    $client_prompt = 'a nice stylish T-shirt';
+    $client_session = time();
+    
+    $response = self::request_api($product_image_url, $client_image_url, $client_prompt, $client_session);
+    
+    echo('$response<pre>' . print_r($response, 1) . '</pre>');
+    die();
+  }
 }

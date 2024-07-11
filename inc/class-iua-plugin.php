@@ -24,18 +24,35 @@ class Iua_Plugin extends Iua_Core {
     }
     
 		add_action( 'admin_menu', array( $this, 'add_page_to_menu' ) );
-    
+    add_action( 'admin_notices', array( $this, 'display_admin_messages' ) );
     add_action( 'widgets_init', array( $this, 'register_widgets' ) );
 	}
 
 	public function initialize() {
 		self::load_options();
+    
+    if ( ! Iua_File_Handler::verify_uploads_directory() ) {
+      self::$error_messages[] = new \WP_Error( 'FilesysError', __( 'Image upload folder is missing! Please try reinstalling "Image Upload API" plugin.', 'iua' ) );
+    }
 	}
 
-	/* Add options on plugin activate */
+	/**
+   *  on plugin activation:
+   *  - Add options
+   *  - check Wordpress and PHP versions
+   *  - create custom directory to save uploaded images
+   */
 	public static function install() {
 		self::install_plugin_options();
+   
+    if ( ! Iua_File_Handler::create_uploads_directory() ) {
+      self::$error_messages[] = new \WP_Error( 'FilesysError', __( 'Failed to create image upload folder.', 'iua' ) );
+    }
 	}
+  
+  public function display_admin_messages() {
+    echo self::display_messages( Iua_Core::$error_messages, Iua_Core::$messages );
+  }
   
 	public static function install_plugin_options() {
 		add_option( 'iua_options', self::$default_option_values );
@@ -67,6 +84,20 @@ class Iua_Plugin extends Iua_Core {
 		);
   }
   
+  /*
+  public static function disable_plugin() {
+    
+    if ( current_user_can('activate_plugins') && is_plugin_active( plugin_basename( Iua_Core::$plugin_root ) ) ) {
+      deactivate_plugins( plugin_basename( Iua_Core::$plugin_root ) );
+
+      // Hide the default "Plugin activated" notice
+      if ( isset( $_GET['activate'] ) ) {
+        unset( $_GET['activate'] );
+      }
+    }
+    
+  }
+  */
   
   public function do_action() {
     
@@ -81,8 +112,10 @@ class Iua_Plugin extends Iua_Core {
         case self::ACTION_SAVE_OPTIONS:
          
           $stored_options = get_option( 'iua_options', array() );
-          $stored_options['max_free_images_for_public'] = filter_input( INPUT_POST,'max_free_images_for_public');
-          $stored_options['max_free_images_for_clients'] = filter_input( INPUT_POST,'max_free_images_for_clients');
+          
+          foreach ( self::$option_names as $option_name => $option_type ) {
+            $stored_options[ $option_name ] = filter_input( INPUT_POST, $option_name );
+          }
           
           update_option( 'iua_options', $stored_options );
         break;
@@ -113,7 +146,7 @@ class Iua_Plugin extends Iua_Core {
     $global_settings_field_set = array(
       array(
 				'name'        => "max_free_images_for_public",
-				'type'        => 'text',
+				'type'        => 'number',
 				'label'       => 'Max number of free images for public users',
 				'default'     => '',
         'value'       => self::$option_values['max_free_images_for_public'],
@@ -121,10 +154,24 @@ class Iua_Plugin extends Iua_Core {
 			),
       array(
 				'name'        => "max_free_images_for_clients",
-				'type'        => 'text',
+				'type'        => 'number',
 				'label'       => 'Max number of free images for clients',
 				'default'     => '',
         'value'       => self::$option_values['max_free_images_for_clients'],
+			),
+      array(
+				'name'        => "api_url",
+				'type'        => 'text',
+				'label'       => 'Full URL to the image generation API',
+				'default'     => '',
+        'value'       => self::$option_values['api_url'],
+			),
+      array(
+				'name'        => "api_key",
+				'type'        => 'text',
+				'label'       => 'Key to use for the image generation API',
+				'default'     => '',
+        'value'       => self::$option_values['api_key'],
 			)
 		);
     
