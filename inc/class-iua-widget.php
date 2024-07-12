@@ -34,10 +34,10 @@ class Iua_Product_Page_Widget extends WP_Widget {
       <?php endif; ?>
       <div style="padding-top:10px;">
         <label for="iua-user-image">Upload your image:</label>
-        <input type="file" id="iua-user-image" name="user_image"/>
+        <input type="file" id="iua-client-image" name="user_image"/>
       </div>
       <div style="padding-top:10px;">
-        <input type="submit"  style="width:100%;" value="<?php echo $button_name; ?>">
+        <input type="button" class="iua-submit" style="width:100%;" value="<?php echo $button_name; ?>">
       </div>
     </form>
     

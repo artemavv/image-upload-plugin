@@ -15,17 +15,23 @@ class Iua_Plugin extends Iua_Core {
     
   public function __construct( $plugin_root ) {
 
-		$this->plugin_root = $plugin_root;
+		Iua_Core::$plugin_root = $plugin_root;
 
 		add_action( 'plugins_loaded', array( $this, 'initialize'), 10 );
 	  
     if ( is_admin() ) {
-      add_action('admin_enqueue_scripts', array($this, 'register_admin_styles_and_scripts') );
+      add_action( 'admin_enqueue_scripts', array($this, 'register_admin_styles_and_scripts') );
     }
     
 		add_action( 'admin_menu', array( $this, 'add_page_to_menu' ) );
     add_action( 'admin_notices', array( $this, 'display_admin_messages' ) );
     add_action( 'widgets_init', array( $this, 'register_widgets' ) );
+    add_action( 'wp_enqueue_scripts', array( $this, 'add_scripts' ) );
+    
+
+    add_action('wp_ajax_iua_upload_image', array( $this, 'handle_widget_submission' ) );
+    add_action('wp_ajax_nopriv_iua_upload_image', array( $this, 'handle_widget_submission' ) );
+    
 	}
 
 	public function initialize() {
@@ -64,14 +70,24 @@ class Iua_Plugin extends Iua_Core {
 	}
   
   public function register_admin_styles_and_scripts() {
-    $file_src = plugins_url( 'css/iua-admin.css', $this->plugin_root );
+    $file_src = plugins_url( 'css/iua-admin.css', self::$plugin_root );
     wp_enqueue_style( 'iua-admin', $file_src, array(), IUA_VERSION );
     
-    wp_enqueue_script( 'iua-admin-js', plugins_url('/js/iua-admin.js', $this->plugin_root), array( 'jquery' ), IUA_VERSION, true );
+    wp_enqueue_script( 'iua-admin-js', plugins_url('/js/iua-admin.js', self::$plugin_root), array( 'jquery' ), IUA_VERSION, true );
     wp_localize_script( 'iua-admin-js', 'scs_settings', array(
       'ajax_url'			=> admin_url( 'admin-ajax.php' ),
     ) );
   }
+  
+  public function add_scripts( ) {
+    
+    $script_name = 'iua-front.js';
+    
+		$script_id = str_replace( '.', '-', $script_name );
+		wp_enqueue_script( $script_id, plugins_url("/js/$script_name", self::$plugin_root), array( 'jquery' ), IUA_VERSION, true );
+    wp_localize_script( $script_id, 'iua_settings', array( 'ajax_url'			=> admin_url( 'admin-ajax.php' ) ) );
+		
+	}
   
 	public function add_page_to_menu() {
     
@@ -209,5 +225,12 @@ class Iua_Plugin extends Iua_Core {
       
     </form>
     <?php 
+  }
+  
+  public function handle_widget_submission() {
+    
+    //echo('<pre>' . print_r($_FILES, 1) . '</pre>');
+    Iua_File_Handler::upload_client_image( $_FILES['file'], 'test' . time() );
+    
   }
 }

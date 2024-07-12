@@ -5,6 +5,3 @@ jQuery(document).ready(function(){
 
  jQuery('.iua-autocomplete').select2();
 });
-
-
-console.log('moo!');

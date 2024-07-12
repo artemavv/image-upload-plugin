@@ -5,6 +5,9 @@ class Iua_File_Handler extends Iua_Core {
   
   public const UPLOAD_DIR_NAME = 'iua-images';
 
+  public static function get_plugin_upload_folder() {
+    return WP_CONTENT_DIR . '/uploads/' . self::UPLOAD_DIR_NAME;
+  }
   
   public static function verify_uploads_directory() {
     global $wp_filesystem;
@@ -13,11 +16,16 @@ class Iua_File_Handler extends Iua_Core {
     
     WP_Filesystem();
 
-    $plugin_upload_folder = WP_CONTENT_DIR . '/uploads/' . self::UPLOAD_DIR_NAME;
-
-    return $wp_filesystem->exists( $plugin_upload_folder );
+    return $wp_filesystem->exists( self::get_plugin_upload_folder() );
   }
   
+  /**
+   * When this plugin is activated, we need to create custom directory 
+   * to store images uploaded by users.
+   * 
+   * @global object $wp_filesystem
+   * @return boolean
+   */
   public static function create_uploads_directory() {
     
     $result = false;
@@ -29,7 +37,7 @@ class Iua_File_Handler extends Iua_Core {
     
     WP_Filesystem();
 
-    $plugin_upload_folder = WP_CONTENT_DIR . '/uploads/' . self::UPLOAD_DIR_NAME;
+    $plugin_upload_folder = self::get_plugin_upload_folder();
 
     if ( ! $wp_filesystem->exists( $plugin_upload_folder ) ) {
        
@@ -43,7 +51,47 @@ class Iua_File_Handler extends Iua_Core {
     return $result;
   }
 
-  public static function upload_client_image( $image_file_path, $client_id ) {
+  /**
+   * Saves file uploaded through widget form into custom uploads folder.
+   * 
+   * $uploaded_file = $_FILES['file'];
+   * 
+   * $uploaded_file = array(
+			'name' => ...
+			'type' => ...
+			'tmp_name' => ...
+			'error' => ...
+			'size' => ...
+		);
+   * 
+   * @param array $uploaded_file
+   * @param string $client_id
+   */
+  public static function upload_client_image( $uploaded_file, $client_id ) {
     
+    $result = false;
+      
+    if ( $uploaded_file['error'] == UPLOAD_ERR_OK ) {
+      
+      $path_parts = pathinfo( $uploaded_file['name'] );
+      
+      $extension = $path_parts['extension'];
+        
+      global $wp_filesystem;
+      require_once ( ABSPATH . '/wp-admin/includes/file.php' );    
+      WP_Filesystem();
+
+      $daily_upload_folder = self::get_plugin_upload_folder() . '/' . date('Y-m-d');
+
+      $folder_created = $wp_filesystem->exists( $daily_upload_folder ) ? true : $wp_filesystem->mkdir( $daily_upload_folder );
+      
+      if ( $folder_created ) {
+        $new_file_name = $client_id . '_' . time() . '.' . $extension;
+        $result = move_uploaded_file( $uploaded_file['tmp_name'], "$daily_upload_folder/$new_file_name" );
+      }
+    }
+    
+    return $result;
   }
+  
 }
