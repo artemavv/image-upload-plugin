@@ -29,8 +29,9 @@ class Iua_Plugin extends Iua_Core {
     add_action( 'wp_enqueue_scripts', array( $this, 'add_scripts' ) );
     
 
-    add_action('wp_ajax_iua_upload_image', array( $this, 'handle_widget_submission' ) );
-    add_action('wp_ajax_nopriv_iua_upload_image', array( $this, 'handle_widget_submission' ) );
+    add_action( 'wp_ajax_iua_upload_image', array( $this, 'handle_widget_submission' ) );
+    add_action( 'wp_ajax_nopriv_iua_upload_image', array( $this, 'handle_widget_submission' ) );
+    add_action( 'init', array( 'Iua_Core', 'set_user_cookie_identifier' ) );
     
 	}
 
@@ -63,7 +64,6 @@ class Iua_Plugin extends Iua_Core {
 	public static function install_plugin_options() {
 		add_option( 'iua_options', self::$default_option_values );
 	}
-  
   
 	public function register_widgets() {		
     register_widget( 'Iua_Product_Page_Widget' );
@@ -99,6 +99,7 @@ class Iua_Plugin extends Iua_Core {
 			array( $this, 'render_settings_page' )   // callback.
 		);
   }
+ 
   
   /*
   public static function disable_plugin() {
@@ -229,8 +230,23 @@ class Iua_Plugin extends Iua_Core {
   
   public function handle_widget_submission() {
     
-    //echo('<pre>' . print_r($_FILES, 1) . '</pre>');
-    Iua_File_Handler::upload_client_image( $_FILES['file'], 'test' . time() );
+    //$product_id = $_POST['product_id'];
+    $client_prompt = $_POST['client_prompt'];
+    $product_image_url = $_POST['product_image']; //self::get_product_image_url( $product_id );
+    
+    $daily_upload_url = self::get_plugin_upload_url() . '/' . date('Y-m-d');
+    
+    $file_name = Iua_File_Handler::upload_client_image( $_FILES['file'], 'test' . time() );
+    
+    if ( $file_name ) {
+      $client_file_url = $daily_upload_url . '/' . $file_name;
+    }
+    
+    $client_session_id = self::get_user_cookie_identifier();
+    
+    //$this->send_api_request( $product_image_url, $client_file_url, $client_prompt, $client_session_id );
+    
+    return print_r([ $product_image_url, $client_prompt, $client_file_url, $client_session_id ], 1);
     
   }
 }

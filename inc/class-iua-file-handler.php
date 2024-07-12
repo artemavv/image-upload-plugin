@@ -3,12 +3,7 @@
 
 class Iua_File_Handler extends Iua_Core { 
   
-  public const UPLOAD_DIR_NAME = 'iua-images';
 
-  public static function get_plugin_upload_folder() {
-    return WP_CONTENT_DIR . '/uploads/' . self::UPLOAD_DIR_NAME;
-  }
-  
   public static function verify_uploads_directory() {
     global $wp_filesystem;
 
@@ -53,6 +48,7 @@ class Iua_File_Handler extends Iua_Core {
 
   /**
    * Saves file uploaded through widget form into custom uploads folder.
+   * Returns file name if upload is successful.
    * 
    * $uploaded_file = $_FILES['file'];
    * 
@@ -66,6 +62,7 @@ class Iua_File_Handler extends Iua_Core {
    * 
    * @param array $uploaded_file
    * @param string $client_id
+   * @return string $file_name
    */
   public static function upload_client_image( $uploaded_file, $client_id ) {
     
@@ -87,7 +84,7 @@ class Iua_File_Handler extends Iua_Core {
       
       if ( $folder_created ) {
         $new_file_name = $client_id . '_' . time() . '.' . $extension;
-        $result = move_uploaded_file( $uploaded_file['tmp_name'], "$daily_upload_folder/$new_file_name" );
+        $result = move_uploaded_file( $uploaded_file['tmp_name'], "$daily_upload_folder/$new_file_name" ) ? $new_file_name : false;
       }
     }
     

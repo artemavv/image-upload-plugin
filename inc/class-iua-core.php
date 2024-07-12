@@ -19,8 +19,13 @@ class Iua_Core {
   // Actions triggered by buttons in backend area
   public const ACTION_SAVE_OPTIONS = 'Save settings';
   
+  // Custom upload directory name inside WP_UPLOAD_DIR
+  public const UPLOAD_DIR_NAME = 'iua-images';
+  
+  
   public static $error_messages = [];
   public static $messages = [];
+  
   
   public static $option_names = [
     'api_url'                         => 'string',
@@ -411,13 +416,67 @@ EOT;
 		}
 	}
   
-  public static function request_api( $product_image_url, $client_image_url, $client_prompt, $client_session ) {
+  public static function get_plugin_upload_folder() {
+    return WP_CONTENT_DIR . '/uploads/' . self::UPLOAD_DIR_NAME;
+  }
+  
+  public static function get_plugin_upload_url() {
+    $upload_dir = wp_upload_dir();
+    return $upload_dir['baseurl'] . '/' . self::UPLOAD_DIR_NAME;
+  }
+  
+  /**
+   * Gets URL for the last product image
+   * 
+   * @param integer $product_id
+   */
+  public static function get_product_image_url( int $product_id ) {
+  
+    $image_url = false;
+    
+    if ( is_numeric( $product_id ) ) {
+      if ( $product = wc_get_product( $product_id ) ) { // check for successful product search
+        $image_id = $product->get_image_id();
+
+        if ( $image_id ) {
+          $info = wp_get_attachment_image_src( $image_id, 'full');
+          $image_url = $info[0];
+        }
+      }
+    }
+    
+    return $image_url;
+  }
+  
+  public static function set_user_cookie_identifier() {
+    if ( ! isset( $_COOKIE['iua_cookie'] ) ) {
+      
+      if ( is_user_logged_in() ) {
+        $user_hash = md5( get_current_user_id() );
+      }
+      else {
+        $user_hash = md5( 'iua_user' . time() );
+      }
+      
+      setcookie( 'iua_cookie', 'sessionID_' . $user_hash, time() + YEAR_IN_SECONDS, COOKIEPATH, COOKIE_DOMAIN );
+    }
+  }
+  
+  public static function get_user_cookie_identifier() {
+    if ( isset( $_COOKIE['iua_cookie'] ) ) {
+      return $_COOKIE['iua_cookie'];
+    }
+    
+    return false;
+  }
+  
+  public static function request_api( $product_image_url, $client_image_url, $client_prompt, $client_session_id ) {
     
     self::load_options();
     
     $data = [
       'API_KEY'         => self::$option_values['api_key'],
-      'sessionId'       => $client_session,
+      'sessionId'       => $client_session_id,
       'image'           => $product_image_url,
       'imageClient'     => $client_image_url,
       'txt'             => $client_prompt

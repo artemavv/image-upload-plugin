@@ -20,28 +20,37 @@ class Iua_Product_Page_Widget extends WP_Widget {
     $prompt_length = $instance[ 'prompt_length' ];
     
     $product_name = get_the_title();
-    $user_prompt = ''; // TODO save user prompt and display it on the next page load
+    $product_id = get_the_ID();
+    $product = wc_get_product( $product_id  );
     
-    echo $args['before_widget'] . $args['before_title'] . $title . $args['after_title']; ?>
+    if ( $product ) {
+      
+      $product_image_url = Iua_Core::get_product_image_url( $product_id );
+      $user_prompt = ''; // TODO save user prompt and display it on the next page load
 
-    <form>
-      <h4>Product name: <?php echo $product_name; ?></h4>
-      <?php if ( $prompt_length > 0 ): ?>
+      echo $args['before_widget'] . $args['before_title'] . $title . $args['after_title']; ?>
+
+      <form>
+        <img id="iua-product-image" src="<?php echo $product_image_url; ?> " />
+        <?php if ( $prompt_length > 0 ): ?>
+          <div style="padding-top:10px;">
+            <label for="iua-user-prompt">Enter your prompt (max <?php echo $prompt_length; ?> characters)</label><br>
+            <input type="text" style="width:100%;" id="iua-user-prompt" name="user_prompt" value="<?php echo $user_prompt; ?>"/>
+          </div>
+        <?php endif; ?>
         <div style="padding-top:10px;">
-          <label for="iua-user-prompt">Enter your prompt (max <?php echo $prompt_length; ?> characters)</label><br>
-          <input type="text" style="width:100%;" id="iua-user-prompt" name="user_prompt" value="<?php echo $user_prompt; ?>"/>
+          <label for="iua-user-image">Upload your image:</label>
+          <input type="file" id="iua-client-image" name="user_image"/>
         </div>
-      <?php endif; ?>
-      <div style="padding-top:10px;">
-        <label for="iua-user-image">Upload your image:</label>
-        <input type="file" id="iua-client-image" name="user_image"/>
-      </div>
-      <div style="padding-top:10px;">
-        <input type="button" class="iua-submit" style="width:100%;" value="<?php echo $button_name; ?>">
-      </div>
-    </form>
+        <div style="padding-top:10px;">
+          <input type="button" class="iua-submit" style="width:100%;" value="<?php echo $button_name; ?>">
+        </div>
+      </form>
     
-    <?php echo $args['after_widget'];
+      <?php 
+      
+    }
+    echo $args['after_widget'];
   }
   
   public function form( $instance ) {
