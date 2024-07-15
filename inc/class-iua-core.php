@@ -470,7 +470,16 @@ EOT;
     return false;
   }
   
-  public static function request_api( $product_image_url, $client_image_url, $client_prompt, $client_session_id ) {
+  /**
+   * Send request to the image generation API 
+   * 
+   * @param string $product_image_url
+   * @param string $client_image_url
+   * @param string $client_prompt
+   * @param string $client_session_id
+   * @return type
+   */
+  public static function request_api( string $product_image_url, string $client_image_url, string $client_prompt, string $client_session_id ) {
     
     self::load_options();
     
@@ -484,33 +493,22 @@ EOT;
     
     $request_url =  self::$option_values['api_url'];
     
-    $args = [
-      'headers'     => 'Content-Type: application/json',
-      'body'        => json_encode($data)
-    ];
+    $json = json_encode( $data, JSON_UNESCAPED_SLASHES );
     
+    $ch = curl_init();
+
+    curl_setopt($ch, CURLOPT_URL, $request_url);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array( 'Content-Type: application/json' ) );
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $json );
+
     
-    $response = wp_remote_get( $request_url, $args );
+    $response = curl_exec($ch);
+
     
-    $response_text = wp_remote_retrieve_body( $response );
-    $response_code = wp_remote_retrieve_response_code( $response );
+    curl_close($ch);
     
-    $result = [ 'code' => $response_code, 'text' => $response_text ];
-    
-    return $result;
+    return $response;
   }
   
-  public static function test_request_api() {
-    
-    
-    $product_image_url = 'https://printsalon.pl/images/products/backs/const/w_f_1.png';
-    $client_image_url = 'https://printsalon.pl/images/products/prints/krakov1.png';
-    $client_prompt = 'a nice stylish T-shirt';
-    $client_session = time();
-    
-    $response = self::request_api($product_image_url, $client_image_url, $client_prompt, $client_session);
-    
-    echo('$response<pre>' . print_r($response, 1) . '</pre>');
-    die();
-  }
 }

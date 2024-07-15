@@ -25,12 +25,16 @@ class Iua_Product_Page_Widget extends WP_Widget {
     
     if ( $product ) {
       
-      $product_image_url = Iua_Core::get_product_image_url( $product_id );
+      $product_image_url  = Iua_Core::get_product_image_url( $product_id );
+      $product_prompt     = esc_html( trim( strip_tags( $product->get_short_description() ) ) ); //esc_html( $product->get_description() );
+      
       $user_prompt = ''; // TODO save user prompt and display it on the next page load
 
       echo $args['before_widget'] . $args['before_title'] . $title . $args['after_title']; ?>
 
       <form>
+        <span id="iua-spinner">PLEASE WAIT MERRILY</span>
+        <input type="hidden" name="iua-product-prompt" value="<?php echo $product_prompt; ?>" />
         <img id="iua-product-image" src="<?php echo $product_image_url; ?> " />
         <?php if ( $prompt_length > 0 ): ?>
           <div style="padding-top:10px;">

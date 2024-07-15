@@ -243,10 +243,25 @@ class Iua_Plugin extends Iua_Core {
     }
     
     $client_session_id = self::get_user_cookie_identifier();
+      
+    $result = self::request_api( $product_image_url, $client_file_url, $client_prompt, $client_session_id );
     
-    //$this->send_api_request( $product_image_url, $client_file_url, $client_prompt, $client_session_id );
+    $json = json_decode( $result, true ); // returns object as an associative array
     
-    return print_r([ $product_image_url, $client_prompt, $client_file_url, $client_session_id ], 1);
+    $result = [
+      'success'     => false,
+      'image_src'   => false
+    ];
     
+    if ( is_array( $json) ) {
+      $result['success'] = true;
+      $result['image_src'] = $json['link'];
+    }
+    elseif ( $result == 'Accepted' ) {
+      $result['image_src'] = 'image404.jpg';
+    }
+    
+    echo json_encode( $result );
+    wp_die();
   }
 }
