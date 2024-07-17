@@ -62,15 +62,11 @@ class Iua_File_Handler extends Iua_Core {
       $path_parts = pathinfo( $uploaded_file['name'] );
       
       $extension = $path_parts['extension'];
-        
-      global $wp_filesystem;
-      require_once ( ABSPATH . '/wp-admin/includes/file.php' );    
-      WP_Filesystem();
 
       $daily_upload_folder = self::get_plugin_upload_folder() . '/' . date('Y-m-d');
 
-      $folder_created = $wp_filesystem->exists( $daily_upload_folder ) ? true : $wp_filesystem->mkdir( $daily_upload_folder );
-      
+      $folder_created = is_dir( $daily_upload_folder) ? true : wp_mkdir_p( $daily_upload_folder );
+
       if ( $folder_created ) {
         $new_file_name = $client_id . '_' . time() . '.' . $extension;
         $result = move_uploaded_file( $uploaded_file['tmp_name'], "$daily_upload_folder/$new_file_name" ) ? $new_file_name : false;

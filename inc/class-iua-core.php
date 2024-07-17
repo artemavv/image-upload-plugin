@@ -495,6 +495,8 @@ EOT;
     
     $json = json_encode( $data, JSON_UNESCAPED_SLASHES );
     
+    self::wc_log('request_api(): sending data to API...', $data );
+    
     $ch = curl_init();
 
     curl_setopt($ch, CURLOPT_URL, $request_url);
@@ -505,10 +507,24 @@ EOT;
     
     $response = curl_exec($ch);
 
+    self::wc_log('request_api(): received response from API', [ 'resp' => $response ] );
     
     curl_close($ch);
     
     return $response;
+  }
+
+  /**
+   * Write into WooCommerce log. 
+   * 
+   * @param string $message
+   * @param array $data
+   */
+  public static function wc_log( string $message, array $data ) {
+    wc_get_logger()->info(
+      $message,
+      $data
+    );
   }
   
 }
