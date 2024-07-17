@@ -57,6 +57,13 @@ class Iua_Plugin extends Iua_Core {
     }
 	}
   
+  /**
+   *  on plugin deactivation
+   */
+	public static function uninstall() {
+		
+	}
+  
   public function display_admin_messages() {
     echo self::display_messages( Iua_Core::$error_messages, Iua_Core::$messages );
   }
