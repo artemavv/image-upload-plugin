@@ -19,28 +19,30 @@ class Iua_Product_Page_Widget extends WP_Widget {
     $button_name = $instance[ 'button_name' ];
     $prompt_length = $instance[ 'prompt_length' ];
     
-    $product_name = get_the_title();
     $product_id = get_the_ID();
     $product = wc_get_product( $product_id  );
     
     if ( $product ) {
       
       $product_image_url  = Iua_Core::get_product_image_url( $product_id );
-      $product_prompt     = esc_html( trim( strip_tags( $product->get_short_description() ) ) ); //esc_html( $product->get_description() );
+      $product_prompt     = Iua_Core::get_product_prompt( $product_id ); //esc_html( trim( strip_tags( $product->get_short_description() ) ) ); //esc_html( $product->get_description() );
       
       $user_prompt = ''; // TODO save user prompt and display it on the next page load
 
       echo $args['before_widget'] . $args['before_title'] . $title . $args['after_title']; ?>
 
       <form>
-        <span id="iua-spinner">PLEASE WAIT MERRILY</span>
-        <input type="hidden" name="iua-product-prompt" value="<?php echo $product_prompt; ?>" />
+        <!--<span id="iua-spinner">PLEASE WAIT MERRILY</span>-->
+        <input type="hidden" id="iua-product-prompt" name="iua-product-prompt" value="<?php echo $product_prompt; ?>" />
+        <input type="hidden" id="iua-product-id" name="iua-product-id" value="<?php echo $product_id; ?>" />
         <img id="iua-product-image" src="<?php echo $product_image_url; ?> " />
         <?php if ( $prompt_length > 0 ): ?>
           <div style="padding-top:10px;">
             <label for="iua-user-prompt">Enter your prompt (max <?php echo $prompt_length; ?> characters)</label><br>
-            <input type="text" style="width:100%;" id="iua-user-prompt" name="user_prompt" value="<?php echo $user_prompt; ?>"/>
+            <input type="text" style="width:100%;" id="iua-client-prompt" name="user_prompt" value="<?php echo $user_prompt; ?>"/>
           </div>
+        <?php else: ?>
+          <input type="hidden" id="iua-client-prompt" name="iua-client-prompt" value="" />
         <?php endif; ?>
         <div style="padding-top:10px;">
           <label for="iua-user-image">Upload your image:</label>

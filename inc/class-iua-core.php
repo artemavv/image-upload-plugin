@@ -5,7 +5,14 @@ class Iua_Core {
 
   public static $plugin_root;
   
-  public const OPTION_NAME_FULL = 'iua_options';
+  // options key used to save plugin settings
+  public const OPTION_NAME_SETTINGS = 'iua_options';
+  
+  // options key used to save total generation statistics 
+  public const OPTION_NAME_STATS = 'iua_statistics';
+  
+  // postmeta key used to save generation statistics for each separate products
+  public const PRODUCT_META_STATS = 'iua_generation_statistics'; 
   
 	public static $prefix = 'iua_';
 	
@@ -426,7 +433,7 @@ EOT;
   }
   
   /**
-   * Gets URL for the last product image
+   * Gets URL for the product image selected by site admin for the generation
    * 
    * @param integer $product_id
    */
@@ -447,15 +454,35 @@ EOT;
     
     return $image_url;
   }
+
+  
+  /**
+   * Gets product prompt used for image generation
+   * 
+   * @param integer $product_id
+   */  
+  public static function get_product_prompt( int $product_id ) {
+    
+    $product_prompt = '';
+    if ( is_numeric( $product_id ) ) {
+      if ( $product = wc_get_product( $product_id ) ) { // check for successful product search
+        $product_prompt = 'Test apple';
+      }
+    }
+    
+    return $product_prompt;
+  }
   
   public static function set_user_cookie_identifier() {
     if ( ! isset( $_COOKIE['iua_cookie'] ) ) {
       
       if ( is_user_logged_in() ) {
-        $user_hash = md5( get_current_user_id() );
+        $user_id = get_current_user_id();
+        $user_hash = md5( $user_id );
+        add_user_meta( $user_id, 'iua_hash', $user_hash , true );
       }
       else {
-        $user_hash = md5( 'iua_user' . time() );
+        $user_hash = md5( 'iua_user' . rand(40000, 90000) . time() );
       }
       
       setcookie( 'iua_cookie', 'sessionID_' . $user_hash, time() + YEAR_IN_SECONDS, COOKIEPATH, COOKIE_DOMAIN );
@@ -471,6 +498,39 @@ EOT;
   }
   
   /**
+   * Update the saved number of API uses performed for the specified product 
+   *
+   * @param int $product_id 
+   * @param string $client_session_id
+   */
+  public static function record_api_usage_for_product( int $product_id, string $client_session_id ) {
+    
+    // Save total API usage
+    
+    $stats = get_option( self::OPTION_NAME_STATS, array() );
+    $current_api_usage_for_product = $stats[$product_id] ?? 0;
+    $stats[$product_id] = $current_api_usage_for_product + 1;
+    update_option( self::OPTION_NAME_STATS, $stats );
+    
+    $date = date('Y-m-d', strtotime("-1 day") );
+    
+    // Save API usage for the specified product and date
+    $product_stats = get_post_meta( $product_id, self::PRODUCT_META_STATS, true );
+    
+    if ( ! $product_stats && ! is_array( $product_stats ) ) {
+      $product_stats = [];
+    }
+    
+    if ( ! isset( $product_stats[$date] ) ) {
+      $product_stats[$date] = array(); // an image was generated for this product for the first time today
+    }
+    
+    $product_stats[$date][] = $client_session_id . '_' . time(); // record the time of the generation event for the current user
+    
+    update_post_meta( $product_id, self::PRODUCT_META_STATS, $product_stats);
+  }
+  
+  /**
    * Send request to the image generation API 
    * 
    * @param string $product_image_url
@@ -482,7 +542,7 @@ EOT;
   public static function request_api( string $product_image_url, string $client_image_url, string $client_prompt, string $client_session_id ) {
     
     self::load_options();
-    
+    /*
     $data = [
       'API_KEY'         => self::$option_values['api_key'],
       'sessionId'       => $client_session_id,
@@ -510,7 +570,9 @@ EOT;
     self::wc_log('request_api(): received response from API', [ 'resp' => $response ] );
     
     curl_close($ch);
+    */
     
+    $response =  "{\"link\": \"https:\/\/serwer2478439.home.pl\/segmentacja\/406282ef-b9bf-418d-9cd1-a924ee954472\/file.jpeg\",\n\"sessionId\": \"sessionID_c4ca4238a0b923820dcc509a6f75849b\"\n}";
     return $response;
   }
 

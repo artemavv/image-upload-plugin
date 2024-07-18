@@ -23,7 +23,8 @@ class Iua_Plugin extends Iua_Core {
       add_action( 'admin_enqueue_scripts', array($this, 'register_admin_styles_and_scripts') );
     }
     
-		add_action( 'admin_menu', array( $this, 'add_page_to_menu' ) );
+		add_action( 'admin_menu', array( 'Iua_Settings', 'add_page_to_menu' ) );
+    
     add_action( 'admin_notices', array( $this, 'display_admin_messages' ) );
     add_action( 'widgets_init', array( $this, 'register_widgets' ) );
     add_action( 'wp_enqueue_scripts', array( $this, 'add_scripts' ) );
@@ -149,126 +150,56 @@ class Iua_Plugin extends Iua_Core {
     return $result;
   }
   
-	public function render_settings_page() {
-    
-    $action_results = '';
-    
-    if ( isset( $_POST['iua-button'] ) ) {
-			$action_results = $this->do_action();
-		}
-    
-    echo $action_results;
-    
-    self::load_options();
-   
-    $this->render_settings_form();
-    
-  }
-  
-  public function render_settings_form() {
-    
-    $global_settings_field_set = array(
-      array(
-				'name'        => "max_free_images_for_public",
-				'type'        => 'number',
-				'label'       => 'Max number of free images for public users',
-				'default'     => '',
-        'value'       => self::$option_values['max_free_images_for_public'],
-        'description' => 'Public uploads are reset every day'
-			),
-      array(
-				'name'        => "max_free_images_for_clients",
-				'type'        => 'number',
-				'label'       => 'Max number of free images for clients',
-				'default'     => '',
-        'value'       => self::$option_values['max_free_images_for_clients'],
-			),
-      array(
-				'name'        => "api_url",
-				'type'        => 'text',
-				'label'       => 'Full URL to the image generation API',
-				'default'     => '',
-        'value'       => self::$option_values['api_url'],
-			),
-      array(
-				'name'        => "api_key",
-				'type'        => 'text',
-				'label'       => 'Key to use for the image generation API',
-				'default'     => '',
-        'value'       => self::$option_values['api_key'],
-			)
-		);
-    
-    ?> 
-
-    <form method="POST" >
-    
-      <h1><?php esc_html_e('Image Uploads Dashboard', 'iua'); ?></h1>
-      
-      
-      <table class="iua-global-table">
-        <tbody>
-          <?php self::display_field_set( $global_settings_field_set ); ?>
-        </tbody>
-      </table>
-      
-      <h2><?php esc_html_e('Image Upload Statistics', 'iua'); ?></h2>
-      
-      <table class="iua-table">
-        <thead>
-          <th>Date</th>
-          <th>Number</th>
-        </thead>
-        <tbody>
-            <tr>
-              <td>2024-01-01</td>
-              <td>100 images uploaded</td>
-            </tr>
-        </tbody>
-      </table>
-      
-      <p class="submit">  
-       <input type="submit" id="iua-button-save" name="iua-button" class="button button-primary" value="<?php echo self::ACTION_SAVE_OPTIONS; ?>" />
-      </p>
-      
-    </form>
-    <?php 
-  }
-  
+  /**
+   * Handler for the "iua_upload_image" AJAX action.
+   * 
+   * uploads the image supplied by user, and sends image URL + client prompt + product image to the API.
+   * 
+   * AJAX response is the URL of generated image.
+   * 
+   * If the generation is successful, records API use in the user's statistics.
+   */
   public function handle_widget_submission() {
     
-    //$product_id = $_POST['product_id'];
-    $client_prompt = $_POST['client_prompt'];
-    $product_image_url = $_POST['product_image']; //self::get_product_image_url( $product_id );
-    
-    $daily_upload_url = self::get_plugin_upload_url() . '/' . date('Y-m-d');
-    
-    $file_name = Iua_File_Handler::upload_client_image( $_FILES['file'], 'test' . time() );
-    
-    if ( $file_name ) {
-      $client_file_url = $daily_upload_url . '/' . $file_name;
-    }
-    
-    $client_session_id = self::get_user_cookie_identifier();
-      
-    $result = self::request_api( $product_image_url, $client_file_url, $client_prompt, $client_session_id );
-    
-    $json = json_decode( $result, true ); // returns object as an associative array
-    
-    $result = [
+    // Default AJAX response to return to the user's browser
+    $ajax_result = [
       'success'     => false,
       'image_src'   => false
     ];
     
-    if ( is_array( $json) ) {
-      $result['success'] = true;
-      $result['image_src'] = $json['link'];
-    }
-    elseif ( $result == 'Accepted' ) {
-      $result['image_src'] = 'image404.jpg';
+    // 0. Gather info about the current submission
+    $client_session_id    = self::get_user_cookie_identifier();
+    $client_prompt        = filter_input( INPUT_POST, 'client_prompt' );
+    $product_id           = intval( filter_input( INPUT_POST, 'product_id' ) );
+    $product_image_url    = self::get_product_image_url( $product_id ); // filter_input( INPUT_POST, 'product_image' ); // 
+    
+    // 1. Get directory to upload client's file to
+    $daily_upload_url = self::get_plugin_upload_url() . '/' . date('Y-m-d');
+    
+    // 2. Upload the image to the selected directory (beacuse image file should be accessible from outside by the API)
+    $file_name = Iua_File_Handler::upload_client_image( $_FILES['file'], $client_session_id );
+    
+    $client_file_url = $file_name ? ( $daily_upload_url . '/' . $file_name ) : false;
+    
+    
+    if ( $client_file_url && $product_id && $product_image_url ) {
+      
+      $result = self::request_api( $product_image_url, $client_file_url, $client_prompt, $client_session_id );
+    
+      $json = json_decode( $result, true ); // returns object as an associative array
+      
+      if ( is_array( $json) ) {
+        
+        self::record_api_usage_for_product( $product_id, $client_session_id );
+        $ajax_result['success'] = true;
+        $ajax_result['image_src'] = $json['link'];
+      }
+      elseif ( $result == 'Accepted' ) {
+        $ajax_result['image_src'] = 'image404.jpg'; // TODO display something in case of API failure
+      }
     }
     
-    echo json_encode( $result );
+    echo json_encode( $ajax_result );
     wp_die();
   }
 }
