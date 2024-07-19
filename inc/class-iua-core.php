@@ -8,11 +8,17 @@ class Iua_Core {
   // options key used to save plugin settings
   public const OPTION_NAME_SETTINGS = 'iua_options';
   
-  // options key used to save total generation statistics 
-  public const OPTION_NAME_STATS = 'iua_statistics';
+  // options key used to save total generation statistics per product
+  public const OPTION_NAME_STATS_PER_PRODUCT = 'iua_statistics_per_product';
   
-  // postmeta key used to save generation statistics for each separate products
+  // options key used to save total generation statistics per public use
+  public const OPTION_NAME_STATS_PUBLIC = 'iua_statistics_public';
+  
+  // postmeta key used to save generation statistics for each separate product
   public const PRODUCT_META_STATS = 'iua_generation_statistics'; 
+  
+  // usermeta key used to save generation statistics for each individual user account
+  public const USER_META_STATS = 'iua_generation_by_user'; 
   
 	public static $prefix = 'iua_';
 	
@@ -29,6 +35,17 @@ class Iua_Core {
   // Custom upload directory name inside WP_UPLOAD_DIR
   public const UPLOAD_DIR_NAME = 'iua-images';
   
+  // Options to use with time period dropdown
+  public const DAY      = 'day';
+  public const WEEK     = 'week';
+  public const MONTH    = 'month';
+  
+  
+  public static $available_time_periods = [
+    self::DAY       => 'Daily',
+    self::WEEK      => 'Weekly',
+    self::MONTH     => 'Monthly'
+  ];
   
   public static $error_messages = [];
   public static $messages = [];
@@ -39,6 +56,7 @@ class Iua_Core {
     'api_key'                         => 'string',
     'max_free_images_for_public'      => 'integer',
     'max_free_images_for_clients'     => 'integer',
+    'accounting_time_period'          => 'string',
     'widget_product_groups'           => 'array'
   ];
   
@@ -47,6 +65,7 @@ class Iua_Core {
     'api_key'                         => '',
     'max_free_images_for_public'      => 50,
     'max_free_images_for_clients'     => 150,
+    'accounting_time_period'          => self::DAY,
     'widget_product_groups'           => []
 	];
     
@@ -507,10 +526,10 @@ EOT;
     
     // Save total API usage
     
-    $stats = get_option( self::OPTION_NAME_STATS, array() );
+    $stats = get_option( self::OPTION_NAME_STATS_PER_PRODUCT, array() );
     $current_api_usage_for_product = $stats[$product_id] ?? 0;
     $stats[$product_id] = $current_api_usage_for_product + 1;
-    update_option( self::OPTION_NAME_STATS, $stats );
+    update_option( self::OPTION_NAME_STATS_PER_PRODUCT, $stats );
     
     $date = date('Y-m-d', strtotime("-1 day") );
     
@@ -531,6 +550,88 @@ EOT;
   }
   
   /**
+   * Update the saved number of API uses performed by specified user
+   *
+   * @param string $client_session_id
+   */
+  public static function record_api_usage_for_user( string $client_session_id ) {
+    
+    
+    $user_id = is_user_logged_in() ? get_current_user_id() : 0;
+    
+    if ( $user_id ) {
+      
+      /**
+       * Data is saved as array with keys: 
+       * [
+       *  'day' => number of uses in the current day,
+       *  'month' => number of uses in the current month,
+       *  'week' => week, obviously
+       *  'last_use' => timestamp of the last time API was requested by this user.
+       */
+      $stats = get_user_meta( $user_id, self::USER_META_STATS, true );
+
+      foreach ( self::$available_time_periods as $period => $name ) {
+      
+        $need_to_reset_api_use = ! self::is_current_time_period( $stats['last_use'], $period );
+      
+        if ( $need_to_reset_api_use ) {
+          $stats[$period] = 1; // this was the first API use in the current day (week,month), since previous use was in the previous day (week,month)
+        }
+      }
+      
+      $stats['last_use'] = time();
+      
+      update_user_meta( $user_id, self::USER_META_STATS, $stats );
+    }
+    else {
+      
+    }
+  }
+  
+  /**
+   * Checks if the provided timestamp was taken at the current day/week/month
+   * @param int $timestamp
+   * @param string $period "day" or "week" or "month"
+   */
+  public static function is_current_time_period( $timestamp, $period ) {
+    $result = true;
+    
+    $provided = new DateTime(); // given date
+    $provided->setTimestamp( $timestamp );
+    
+    $dt = new \DateTime(); // date to compare with
+    
+    if ( $period == self::DAY ) {
+      $dt->setTime(0, 0, 0);
+      $result = $provided > $dt; // compare provided timestamp with the start of the day. If timestamp is bigger then it is from current day.
+    }
+    elseif ( $period == self::WEEK ) {
+      $start_of_week = get_option('start_of_week'); // 0 is Sunday, 1 is Monday
+
+      $days = [
+        'sunday',
+        'monday',
+        'tuesday',
+        'wednesday',
+        'thursday',
+        'friday',
+        'saturday',
+      ];
+      $day_name = $days[$start_of_week];
+      $dt->modify( " $day_name this week");
+      $result = $provided > $dt; // compare provided timestamp with the start of the week.
+    }
+    elseif ( $period == self::MONTH ) {
+      $dt->modify( "first day of this month");
+      $result = $provided > $dt; // compare provided timestamp with the start of the month.
+    }
+
+    
+    return $result;
+  }
+  
+  /**
    * Send request to the image generation API 
    * 
    * @param string $product_image_url
@@ -542,7 +643,7 @@ EOT;
   public static function request_api( string $product_image_url, string $client_image_url, string $client_prompt, string $client_session_id ) {
     
     self::load_options();
-    /*
+    /* DISABLED FOR TESTS 
     $data = [
       'API_KEY'         => self::$option_values['api_key'],
       'sessionId'       => $client_session_id,

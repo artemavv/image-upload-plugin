@@ -71,7 +71,7 @@ class Iua_Settings extends Iua_Core {
 				'label'       => 'Max number of free images for public users',
 				'default'     => '',
         'value'       => self::$option_values['max_free_images_for_public'],
-        'description' => 'Public uploads are reset every day'
+        'description' => 'Limit for public uploads is reset every ' . self::$option_values['accounting_time_period']
 			),
       array(
 				'name'        => "max_free_images_for_clients",
@@ -79,21 +79,30 @@ class Iua_Settings extends Iua_Core {
 				'label'       => 'Max number of free images for clients',
 				'default'     => '',
         'value'       => self::$option_values['max_free_images_for_clients'],
+        'description' => 'Limit for each registered user is reset every ' . self::$option_values['accounting_time_period']
 			),
-      array(
+      /*array(
 				'name'        => "api_url",
 				'type'        => 'text',
 				'label'       => 'Full URL to the image generation API',
 				'default'     => '',
         'value'       => self::$option_values['api_url'],
-			),
+			),*/
       array(
 				'name'        => "api_key",
 				'type'        => 'text',
 				'label'       => 'Key to use for the image generation API',
 				'default'     => '',
         'value'       => self::$option_values['api_key'],
-			)
+			),
+      array(
+				'name'        => "accounting_time_period",
+				'type'        => 'dropdown',
+        'options'     => self::$available_time_periods,
+				'label'       => 'Time period for users\' API limits',
+				'default'     => '',
+        'value'       => self::$option_values['accounting_time_period'],
+      )
 		);
     
     ?> 

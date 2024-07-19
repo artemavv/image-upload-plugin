@@ -191,6 +191,7 @@ class Iua_Plugin extends Iua_Core {
       if ( is_array( $json) ) {
         
         self::record_api_usage_for_product( $product_id, $client_session_id );
+        self::record_api_usage_for_user( $client_session_id );
         $ajax_result['success'] = true;
         $ajax_result['image_src'] = $json['link'];
       }
