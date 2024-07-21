@@ -58,7 +58,8 @@ class Iua_Settings extends Iua_Core {
     self::load_options();
    
     self::render_settings_form();
-    self::render_statistics();
+    self::render_product_statistics();
+    self::render_user_statistics();
     
   }
   
@@ -140,8 +141,7 @@ class Iua_Settings extends Iua_Core {
       
     $query_sql = "SELECT p.`ID`, p.`post_title` as 'product_name', pm.`meta_value` AS 'stats' from {$wp}posts AS p
       LEFT JOIN `{$wp}postmeta` AS pm on p.`ID` = pm.`post_id`
-      WHERE pm.`meta_key` != ''
-      AND pm.`meta_key` = '$statistics_meta_key'
+      WHERE pm.`meta_key` = '$statistics_meta_key'
       AND p.post_type = 'product' ";
     
     $products = array();
@@ -158,6 +158,37 @@ class Iua_Settings extends Iua_Core {
     return $products;
   }
   
+  /**
+   * Retrieves API usage statistics by registered users
+   * 
+   * Stats of each user has keys: 'day', 'week', 'momth', 'last_use'
+   * 
+   * @return array [ user_id => user_stats ]
+   */
+  public static function get_users_statistics() {
+    
+    global $wpdb;
+    
+    $wp = $wpdb->prefix;
+    
+    $statistics_meta_key = self::USER_META_STATS;
+      
+    $query_sql = "SELECT u.`ID`, um.`meta_value` AS 'stats' from {$wp}users AS u
+      LEFT JOIN `{$wp}usermeta` AS um on u.`ID` = um.`user_id`
+      WHERE um.`meta_key` = '$statistics_meta_key' ";
+    
+    $user_stats = array();
+    
+    $sql_results = $wpdb->get_results( $query_sql, ARRAY_A );
+    
+    foreach ( $sql_results as $row ) {
+      
+      $user_stats[$row['ID']] = unserialize( $row['stats'] );
+     
+    }
+    
+    return $user_stats;
+  }
   /**
    * 
    * @return array
@@ -205,7 +236,7 @@ class Iua_Settings extends Iua_Core {
   }
   
   
-  public static function render_statistics() {
+  public static function render_product_statistics() {
     
     $products = self::get_products_used_for_generation();
     $generation_stats = self::get_generation_statistics( $products );
@@ -232,6 +263,37 @@ class Iua_Settings extends Iua_Core {
               <?php endforeach; ?>
             </tr>
             <?php endforeach; ?>
+        </tbody>
+      </table>
+
+    <?php
+  }
+  
+  public static function render_user_statistics() {
+    
+    // returns array ( userd_id => user_stats )
+    $user_stats = self::get_users_statistics();
+    
+    ?>
+    
+    <h2><?php esc_html_e('Statistics by user', 'iua'); ?></h2>
+      
+      <table class="iua-table">
+        <thead>
+          <th>User ID</th>
+          <th>Today</th>
+          <th>This week</th>
+          <th>This month</th>
+        </thead>
+        <tbody>
+          <?php foreach ( $user_stats as $user_id => $row ): ?>
+            <tr>
+              <td><?php echo $user_id; ?></td>
+              <td><?php echo $row[self::DAY]; ?></td>
+              <td><?php echo $row[self::WEEK]; ?></td>
+              <td><?php echo $row[self::MONTH]; ?></td>
+            </tr>
+          <?php endforeach; ?>
         </tbody>
       </table>
 

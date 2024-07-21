@@ -11,7 +11,7 @@ class Iua_Core {
   // options key used to save total generation statistics per product
   public const OPTION_NAME_STATS_PER_PRODUCT = 'iua_statistics_per_product';
   
-  // options key used to save total generation statistics per public use
+  // options key used to save total generation statistics per public use (unregistered users)
   public const OPTION_NAME_STATS_PUBLIC = 'iua_statistics_public';
   
   // postmeta key used to save generation statistics for each separate product
@@ -571,6 +571,10 @@ EOT;
        */
       $stats = get_user_meta( $user_id, self::USER_META_STATS, true );
 
+      if ( ! is_array( $stats ) ) {
+        $stats = array();
+      }
+      
       foreach ( self::$available_time_periods as $period => $name ) {
       
         $need_to_reset_api_use = ! self::is_current_time_period( $stats['last_use'], $period );
@@ -578,14 +582,41 @@ EOT;
         if ( $need_to_reset_api_use ) {
           $stats[$period] = 1; // this was the first API use in the current day (week,month), since previous use was in the previous day (week,month)
         }
+        else {
+          if ( isset( $stats[$period] ) ) {
+            $stats[$period]++;
+          }else {
+            $stats[$period] = 1;
+          }
+        }
       }
       
       $stats['last_use'] = time();
       
       update_user_meta( $user_id, self::USER_META_STATS, $stats );
     }
-    else {
+    elseif ( $client_session_id ) {
+      $public_use_stats = get_option( self::OPTION_NAME_STATS_PUBLIC );
+      if ( isset( $public_use_stats[$client_session_id] ) ) {
+        // TODO record data for the individual user
+      }
       
+      $shared_stats = $public_use_stats['shared'];
+      
+      foreach ( self::$available_time_periods as $period => $name ) {
+      
+        $need_to_reset_api_use = ! self::is_current_time_period( $shared_stats['last_use'], $period );
+      
+        if ( $need_to_reset_api_use ) {
+          $shared_stats[$period] = 1; // this was the first API use in the current day (week,month), since previous use was in the previous day (week,month)
+        }
+        else {
+          $shared_stats[$period]++;
+        }
+      }
+      $public_use_stats['shared'] = $shared_stats;
+      
+      update_option( self::OPTION_NAME_STATS_PUBLIC, $public_use_stats );
     }
   }
   

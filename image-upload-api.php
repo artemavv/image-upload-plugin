@@ -9,7 +9,7 @@
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Requires at least: 5.4
  * Requires PHP: 7.4
- * Version: 0.1.7
+ * Version: 0.1.8
  */
 
 /*
@@ -31,7 +31,7 @@
 require_once 'includes.php';
 
 
-define( 'IUA_VERSION', '0.1.7' );
+define( 'IUA_VERSION', '0.1.8' );
 define( 'IUA_TEXT_DOMAIN', 'image-upload-api' );
 
 $plugin_root = __FILE__;
