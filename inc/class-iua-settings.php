@@ -173,7 +173,7 @@ class Iua_Settings extends Iua_Core {
     
     $statistics_meta_key = self::USER_META_STATS;
       
-    $query_sql = "SELECT u.`ID`, um.`meta_value` AS 'stats' from {$wp}users AS u
+    $query_sql = "SELECT u.`ID`, u.`user_login`, um.`meta_value` AS 'stats' from {$wp}users AS u
       LEFT JOIN `{$wp}usermeta` AS um on u.`ID` = um.`user_id`
       WHERE um.`meta_key` = '$statistics_meta_key' ";
     
@@ -183,7 +183,7 @@ class Iua_Settings extends Iua_Core {
     
     foreach ( $sql_results as $row ) {
       
-      $user_stats[$row['ID']] = unserialize( $row['stats'] );
+      $user_stats[$row['user_login']] = unserialize( $row['stats'] );
      
     }
     
@@ -278,20 +278,27 @@ class Iua_Settings extends Iua_Core {
     
     <h2><?php esc_html_e('Statistics by user', 'iua'); ?></h2>
       
+    <p>Current time period for API quota: <strong><?php echo( self::$option_values['accounting_time_period'] ); ?></strong></p>
+
       <table class="iua-table">
         <thead>
           <th>User ID</th>
           <th>Today</th>
           <th>This week</th>
           <th>This month</th>
+          <th>Last time used</th>
+          <th>Remaining API quota</th>
         </thead>
         <tbody>
-          <?php foreach ( $user_stats as $user_id => $row ): ?>
+          <?php foreach ( $user_stats as $user_login => $row ): ?>
+            <?php $remaining_uses = self::calculate_remaining_uses( $row); ?>
             <tr>
-              <td><?php echo $user_id; ?></td>
+              <td><?php echo $user_login; ?></td>
               <td><?php echo $row[self::DAY]; ?></td>
               <td><?php echo $row[self::WEEK]; ?></td>
               <td><?php echo $row[self::MONTH]; ?></td>
+              <td><?php echo date('Y-m-d H:i:s', $row['last_use']); ?></td>
+              <td><?php echo $remaining_uses; ?></td>
             </tr>
           <?php endforeach; ?>
         </tbody>
@@ -299,4 +306,5 @@ class Iua_Settings extends Iua_Core {
 
     <?php
   }
+
 }

@@ -29,8 +29,12 @@ class Iua_Product_Page_Widget extends WP_Widget {
       
       $user_prompt = ''; // TODO save user prompt and display it on the next page load
 
+      $user_stats = Iua_Core::get_usage_stats_for_current_user();
+      $remaining = Iua_Core::calculate_remaining_uses( $user_stats ) ; // TODO calculate
+      
       echo $args['before_widget'] . $args['before_title'] . $title . $args['after_title']; ?>
 
+      Remaining uses: <?php echo $remaining; ?>
       <form>
         <!--<span id="iua-spinner">PLEASE WAIT MERRILY</span>-->
         <input type="hidden" id="iua-product-prompt" name="iua-product-prompt" value="<?php echo $product_prompt; ?>" />
@@ -44,13 +48,17 @@ class Iua_Product_Page_Widget extends WP_Widget {
         <?php else: ?>
           <input type="hidden" id="iua-client-prompt" name="iua-client-prompt" value="" />
         <?php endif; ?>
+        <?php if ( $remaining > 0 ): ?>
         <div style="padding-top:10px;">
           <label for="iua-user-image">Upload your image:</label>
           <input type="file" id="iua-client-image" name="user_image"/>
         </div>
         <div style="padding-top:10px;">
-          <input type="button" class="iua-submit" style="width:100%;" value="<?php echo $button_name; ?>">
+            <input type="button" class="iua-submit" style="width:100%;" value="<?php echo $button_name; ?>">
         </div>
+        <?php else: ?>
+          <div style="padding-top:10px;">Sorry, you have reached your limit of free uses.</div>
+        <?php endif; ?>
       </form>
     
       <?php 

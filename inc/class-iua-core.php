@@ -661,6 +661,38 @@ EOT;
     
     return $result;
   }
+
+
+  public static function get_usage_stats_for_current_user() {
+
+    $user_id = is_user_logged_in() ? get_current_user_id() : 0;
+    
+    if ( $user_id ) {
+      
+      // @see record_api_usage_for_user() for comments
+      $stats = get_user_meta( $user_id, self::USER_META_STATS, true );
+    }
+    else {
+      $public_use_stats = get_option( self::OPTION_NAME_STATS_PUBLIC );
+      $stats = $stats['shared'];
+    }
+
+    return $stats;
+  }
+
+  public static function calculate_remaining_uses( $stats ) {
+
+    $remaining = 0;
+    $quota = self::$option_values['max_free_images_for_clients'];
+
+    $key = self::$option_values['accounting_time_period'];
+
+    if ( isset( $stats[$key] ) ) {
+      $remaining = $quota - $stats[$key];
+    }
+    
+    return $remaining;
+  }
   
   /**
    * Send request to the image generation API 
@@ -674,7 +706,7 @@ EOT;
   public static function request_api( string $product_image_url, string $client_image_url, string $client_prompt, string $client_session_id ) {
     
     self::load_options();
-    /* DISABLED FOR TESTS 
+    
     $data = [
       'API_KEY'         => self::$option_values['api_key'],
       'sessionId'       => $client_session_id,
@@ -702,9 +734,9 @@ EOT;
     self::wc_log('request_api(): received response from API', [ 'resp' => $response ] );
     
     curl_close($ch);
-    */
     
-    $response =  "{\"link\": \"https:\/\/serwer2478439.home.pl\/segmentacja\/406282ef-b9bf-418d-9cd1-a924ee954472\/file.jpeg\",\n\"sessionId\": \"sessionID_c4ca4238a0b923820dcc509a6f75849b\"\n}";
+    
+    //$response =  "{\"link\": \"https:\/\/serwer2478439.home.pl\/segmentacja\/406282ef-b9bf-418d-9cd1-a924ee954472\/file.jpeg\",\n\"sessionId\": \"sessionID_c4ca4238a0b923820dcc509a6f75849b\"\n}";
     return $response;
   }
 

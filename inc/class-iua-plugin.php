@@ -188,6 +188,9 @@ class Iua_Plugin extends Iua_Core {
     
       $json = json_decode( $result, true ); // returns object as an associative array
       
+      //echo('TEST');
+
+      //echo $json;
       if ( is_array( $json) ) {
         
         self::record_api_usage_for_product( $product_id, $client_session_id );
@@ -199,7 +202,16 @@ class Iua_Plugin extends Iua_Core {
         $ajax_result['image_src'] = 'image404.jpg'; // TODO display something in case of API failure
       }
     }
+    else {
+      $ajax_result['error_message'] = 'Missing data: ';
+      if  ( ! $client_file_url )        {  $ajax_result['error_message'] .= ' client_file_url '; }
+      if  ( ! $product_id )             {  $ajax_result['error_message'] .= ' product_id '; }
+      if  ( ! $product_image_url )      {  $ajax_result['error_message'] .= ' product_image_url '; }
+      
+    }
     
+    
+
     echo json_encode( $ajax_result );
     wp_die();
   }
