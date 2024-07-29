@@ -34,6 +34,15 @@ require_once 'includes.php';
 define( 'IUA_VERSION', '0.1.8' );
 define( 'IUA_TEXT_DOMAIN', 'image-upload-api' );
 
+
+if ( ! defined( 'IUA_URL' ) ) {
+	define( 'IUA_URL', plugin_dir_url( __FILE__ ) );
+}
+
+if ( ! defined( 'IUA_PATH' ) ) {
+	define( 'IUA_PATH', plugin_dir_path( __FILE__ ) );
+}
+
 $plugin_root = __FILE__;
 
 Iua_Core::$plugin_root = $plugin_root;

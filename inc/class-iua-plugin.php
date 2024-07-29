@@ -27,8 +27,12 @@ class Iua_Plugin extends Iua_Core {
     
     add_action( 'admin_notices', array( $this, 'display_admin_messages' ) );
     add_action( 'widgets_init', array( $this, 'register_widgets' ) );
-    add_action( 'wp_enqueue_scripts', array( $this, 'add_scripts' ) );
     
+    add_action( 'wp_enqueue_scripts', array( $this, 'add_frontend_scripts' ) );
+    
+    add_action('admin_enqueue_scripts', array($this, 'add_admin_styles_scripts'));
+    
+    add_action( 'add_meta_boxes', array( $this, 'add_wc_product_meta_box' ) );
 
     add_action( 'wp_ajax_iua_upload_image', array( $this, 'handle_widget_submission' ) );
     add_action( 'wp_ajax_nopriv_iua_upload_image', array( $this, 'handle_widget_submission' ) );
@@ -87,7 +91,7 @@ class Iua_Plugin extends Iua_Core {
     ) );
   }
   
-  public function add_scripts( ) {
+  public function add_frontend_scripts( ) {
     
     $script_name = 'iua-front.js';
     
@@ -96,6 +100,18 @@ class Iua_Plugin extends Iua_Core {
     wp_localize_script( $script_id, 'iua_settings', array( 'ajax_url'			=> admin_url( 'admin-ajax.php' ) ) );
 		
 	}
+  
+  public function add_admin_styles_scripts() {
+    if ( file_exists(IUA_PATH . 'js/iua-admin.js') ) {
+      wp_enqueue_script( 'iua-admin', IUA_URL . 'js/iua-admin.js', array( 'jquery' ), IUA_VERSION, true );
+
+      wp_localize_script( 'iua-admin', 'ajaxUrl', admin_url('admin-ajax.php') );
+    }
+
+    if ( file_exists(IUA_PATH . 'css/iua-admin.css') ) {
+      wp_enqueue_style( 'iua-main', IUA_URL . 'css/iua-admin.css', false, IUA_VERSION );
+    }
+  }
   
 	public function add_page_to_menu() {
     
@@ -108,6 +124,14 @@ class Iua_Plugin extends Iua_Core {
 		);
   }
  
+  public function add_wc_product_meta_box() {
+    add_meta_box(
+      'edit-product-prompt',
+      __( 'Image Generation for this product', 'iua' ),
+      array( $this, 'render_wc_product_meta_box' ),
+      'product'
+    );
+  }
   
   /*
   public static function disable_plugin() {
@@ -172,6 +196,9 @@ class Iua_Plugin extends Iua_Core {
     $client_prompt        = filter_input( INPUT_POST, 'client_prompt' );
     $product_id           = intval( filter_input( INPUT_POST, 'product_id' ) );
     $product_image_url    = self::get_product_image_url( $product_id ); // filter_input( INPUT_POST, 'product_image' ); // 
+    $product_prompt       = self::get_product_prompt( $product_id ); 
+    
+    $final_prompt = $product_prompt . '. ' . $client_prompt;
     
     // 1. Get directory to upload client's file to
     $daily_upload_url = self::get_plugin_upload_url() . '/' . date('Y-m-d');
@@ -184,7 +211,7 @@ class Iua_Plugin extends Iua_Core {
     
     if ( $client_file_url && $product_id && $product_image_url ) {
       
-      $result = self::request_api( $product_image_url, $client_file_url, $client_prompt, $client_session_id );
+      $result = self::request_api( $product_image_url, $client_file_url, $final_prompt, $client_session_id );
     
       $json = json_decode( $result, true ); // returns object as an associative array
       
@@ -215,4 +242,75 @@ class Iua_Plugin extends Iua_Core {
     echo json_encode( $ajax_result );
     wp_die();
   }
+  
+  public function render_wc_product_meta_box( $post ) {
+    
+  
+    // Add a nonce field so we can check for it later.
+    wp_nonce_field(self::NONCE, self::NONCE);
+
+    $iua_settings = get_post_meta( $post->ID, self::PRODUCT_SETTINGS, true );
+   
+    $checkbox_value = true; // enable by default. 
+    
+    if ( is_array( $iua_settings ) ) {
+      $checkbox_value = $iua_settings['image_generation_enabled'] === false ? 1 : 0;
+    }
+    
+    ?>
+
+    <div class="iua-fieldset">
+
+      <label for="image_generation_enabled">Enabled?</label>
+      <?php echo self::make_checkbox_field('image_generation_enabled', $checkbox_value ); ?>
+      <p class="note">Enable image generation for this product</p>
+
+      <label for="product_prompt_for_generation">Prompt</label>
+      <?php echo self::make_textarea_field('product_prompt_for_generation', $iua_settings['product_prompt_for_generation'] ?? '' ); ?>
+      <p class="note">Prompt to use for image generation</p>
+      
+
+      <?php
+    }
+  
+  /**
+   * Saves IUA settings for the specified WC Product.
+   * @param int $post_id
+   */
+  public function save_meta_box_data( $post_id ) {
+
+    // Check if our nonce is set.
+    if ( ! filter_input( INPUT_POST, self::NONCE ) ) {
+      return;
+    }
+
+    // Verify that the nonce is valid.
+    if ( ! wp_verify_nonce( filter_input( INPUT_POST, self::NONCE ), self::NONCE ) ) {
+      return;
+    }
+
+    // If this is an autosave, our form has not been submitted, so we don't want to do anything.
+    if ( defined('DOING_AUTOSAVE') && DOING_AUTOSAVE ) {
+      return;
+    }
+
+    // Check the post type and user's permissions
+    if ( filter_input( INPUT_POST, 'post_type' ) == 'product' && current_user_can( 'edit_page', $post_id ) ) {
+
+      // it's safe for us to save the data now
+
+      $iua_settings = filter_input( INPUT_POST, 'iua_settings' );
+
+      if ( is_array( $iua_settings ) ) {
+        
+        // special case for checkbox
+        if ( ! isset( $iua_settings['image_generation_enabled'] ) ) {
+          $iua_settings['image_generation_enabled'] = false;
+        }
+
+        update_post_meta($post_id, self::POSTMETA, $iua_settings );
+      }
+    }
+  }
+
 }

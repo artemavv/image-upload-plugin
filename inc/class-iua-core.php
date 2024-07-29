@@ -17,6 +17,9 @@ class Iua_Core {
   // postmeta key used to save generation statistics for each separate product
   public const PRODUCT_META_STATS = 'iua_generation_statistics'; 
   
+  // postmeta key used to save generation settings for each separate product
+  public const PRODUCT_SETTINGS = 'iua_settings'; 
+  
   // usermeta key used to save generation statistics for each individual user account
   public const USER_META_STATS = 'iua_generation_by_user'; 
   
@@ -28,6 +31,10 @@ class Iua_Core {
   
   // name of the submit button that triggers POST form
   public const BUTTON_SUMBIT = 'iua-button';
+  
+  // used in the admin area in plugin metabox.
+  const NONCE = 'iua_metabox_nonce';
+
   
   // Actions triggered by buttons in backend area
   public const ACTION_SAVE_OPTIONS = 'Save settings';
