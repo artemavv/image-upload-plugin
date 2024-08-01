@@ -294,13 +294,13 @@ EOT;
 		
 		// 2. Make HTML for table row
 		switch ($field['type']) {
-			case 'checkbox':
+			/*case 'checkbox':
 				$table_row_html = <<<EOT
 		<tr style="display:{$display}" >
 			<td colspan="3" class="col-checkbox">{$input_html}<label for="iua_{$field['id']}">$label</label></td>
 		</tr>
 EOT;
-				break;
+				break;*/
 			case 'hidden':
 				$table_row_html = <<<EOT
 		<tr style="display:none" >
@@ -312,6 +312,7 @@ EOT;
 			case 'text':
       case 'number':
 			case 'textarea':
+      case 'checkbox':
 			default:
 				if (isset($field['description']) && $field['description']) {
 					$table_row_html = <<<EOT
@@ -358,8 +359,11 @@ EOT;
 	 * @param array $value
 	 */
 	public static function make_text_field($field, $value) {
+    
+    $size = $field['size'] ?? 25;
+    
 		$out = <<<EOT
-			<input type="text" id="iua_{$field['id']}" name="{$field['name']}" value="{$value}" class="iua-text-field">
+			<input type="text" id="iua_{$field['id']}" name="{$field['name']}" size="{$size}"value="{$value}" class="iua-text-field">
 EOT;
 		return $out;
 	}
@@ -461,23 +465,23 @@ EOT;
   /**
    * Gets URL for the product image selected by site admin for the generation
    * 
-   * @param integer $product_id
    */
-  public static function get_product_image_url( int $product_id ) {
+  public static function get_product_image_url( $product, $product_settings ) {
   
     $image_url = false;
     
-    if ( is_numeric( $product_id ) ) {
-      if ( $product = wc_get_product( $product_id ) ) { // check for successful product search
-        $image_id = $product->get_image_id();
+    if ( is_array( $product_settings ) && isset( $product_settings['product_image_url'] ) ) {
+      $image_url = $product_settings['product_image_url'];
+    }
+    else {
+      $image_id = $product->get_image_id();
 
-        if ( $image_id ) {
-          $info = wp_get_attachment_image_src( $image_id, 'full');
-          $image_url = $info[0];
-        }
+      if ( $image_id ) {
+        $info = wp_get_attachment_image_src( $image_id, 'full');
+        $image_url = $info[0];
       }
     }
-    
+     
     return $image_url;
   }
 
@@ -485,15 +489,16 @@ EOT;
   /**
    * Gets product prompt used for image generation
    * 
-   * @param integer $product_id
    */  
-  public static function get_product_prompt( int $product_id ) {
+  public static function get_product_prompt( $product, $product_settings ) {
     
-    $product_prompt = '';
-    if ( is_numeric( $product_id ) ) {
-      if ( $product = wc_get_product( $product_id ) ) { // check for successful product search
-        $product_prompt = 'Test apple';
-      }
+    $product_prompt = $product_settings['product_prompt_for_generation'] ?? '';
+    
+    if ( $product_prompt ) {
+      $product_prompt = esc_html( trim( strip_tags( $product_prompt ) ) );
+    }
+    else {
+      $product_prompt = esc_html( trim( strip_tags( $product->get_short_description() ) ) );
     }
     
     return $product_prompt;

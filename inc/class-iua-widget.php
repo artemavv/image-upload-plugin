@@ -24,45 +24,49 @@ class Iua_Product_Page_Widget extends WP_Widget {
     
     if ( $product ) {
       
-      $product_image_url  = Iua_Core::get_product_image_url( $product_id );
-      $product_prompt     = Iua_Core::get_product_prompt( $product_id ); //esc_html( trim( strip_tags( $product->get_short_description() ) ) ); //esc_html( $product->get_description() );
+      $product_settings = get_post_meta( $product_id, Iua_Core::PRODUCT_SETTINGS, true );
       
-      $user_prompt = ''; // TODO save user prompt and display it on the next page load
+      if ( $product_settings['image_generation_enabled'] ?? false || $product_settings === false ) {
 
-      $user_stats = Iua_Core::get_usage_stats_for_current_user();
-      $remaining = Iua_Core::calculate_remaining_uses( $user_stats ) ; // TODO calculate
-      
-      echo $args['before_widget'] . $args['before_title'] . $title . $args['after_title']; ?>
+        $product_image_url  = Iua_Core::get_product_image_url( $product, $product_settings );
+        $product_prompt     = Iua_Core::get_product_prompt( $product, $product_settings ); //esc_html( trim( strip_tags( $product->get_short_description() ) ) ); //esc_html( $product->get_description() );
 
-      Remaining uses: <?php echo $remaining; ?>
-      <form>
-        <!--<span id="iua-spinner">PLEASE WAIT MERRILY</span>-->
-        <input type="hidden" id="iua-product-prompt" name="iua-product-prompt" value="<?php echo $product_prompt; ?>" />
-        <input type="hidden" id="iua-product-id" name="iua-product-id" value="<?php echo $product_id; ?>" />
-        <img id="iua-product-image" src="<?php echo $product_image_url; ?> " />
-        <?php if ( $prompt_length > 0 ): ?>
+        $user_prompt = ''; // TODO save user prompt and display it on the next page load
+
+        $user_stats = Iua_Core::get_usage_stats_for_current_user();
+        $remaining = Iua_Core::calculate_remaining_uses( $user_stats ) ; // TODO calculate
+
+        echo $args['before_widget'] . $args['before_title'] . $title . $args['after_title']; ?>
+
+        Remaining uses: <?php echo $remaining; ?>
+        <form>
+          <!--<span id="iua-spinner">PLEASE WAIT MERRILY</span>-->
+          <input type="hidden" id="iua-product-prompt" name="iua-product-prompt" value="<?php echo $product_prompt; ?>" />
+          <input type="hidden" id="iua-product-id" name="iua-product-id" value="<?php echo $product_id; ?>" />
+          <img id="iua-product-image" src="<?php echo $product_image_url; ?> " />
+          <?php if ( $prompt_length > 0 ): ?>
+            <div style="padding-top:10px;">
+              <label for="iua-user-prompt">Enter your prompt (max <?php echo $prompt_length; ?> characters)</label><br>
+              <input type="text" style="width:100%;" id="iua-client-prompt" name="user_prompt" value="<?php echo $user_prompt; ?>"/>
+            </div>
+          <?php else: ?>
+            <input type="hidden" id="iua-client-prompt" name="iua-client-prompt" value="" />
+          <?php endif; ?>
+          <?php if ( $remaining > 0 ): ?>
           <div style="padding-top:10px;">
-            <label for="iua-user-prompt">Enter your prompt (max <?php echo $prompt_length; ?> characters)</label><br>
-            <input type="text" style="width:100%;" id="iua-client-prompt" name="user_prompt" value="<?php echo $user_prompt; ?>"/>
+            <label for="iua-user-image">Upload your image:</label>
+            <input type="file" id="iua-client-image" name="user_image"/>
           </div>
-        <?php else: ?>
-          <input type="hidden" id="iua-client-prompt" name="iua-client-prompt" value="" />
-        <?php endif; ?>
-        <?php if ( $remaining > 0 ): ?>
-        <div style="padding-top:10px;">
-          <label for="iua-user-image">Upload your image:</label>
-          <input type="file" id="iua-client-image" name="user_image"/>
-        </div>
-        <div style="padding-top:10px;">
-            <input type="button" class="iua-submit" style="width:100%;" value="<?php echo $button_name; ?>">
-        </div>
-        <?php else: ?>
-          <div style="padding-top:10px;">Sorry, you have reached your limit of free uses.</div>
-        <?php endif; ?>
-      </form>
-    
-      <?php 
-      
+          <div style="padding-top:10px;">
+              <input type="button" class="iua-submit" style="width:100%;" value="<?php echo $button_name; ?>">
+          </div>
+          <?php else: ?>
+            <div style="padding-top:10px;">Sorry, you have reached your limit of free uses.</div>
+          <?php endif; ?>
+        </form>
+
+        <?php 
+      }
     }
     echo $args['after_widget'];
   }

@@ -33,6 +33,9 @@ class Iua_Plugin extends Iua_Core {
     add_action('admin_enqueue_scripts', array($this, 'add_admin_styles_scripts'));
     
     add_action( 'add_meta_boxes', array( $this, 'add_wc_product_meta_box' ) );
+    
+    add_action( 'save_post', array($this, 'save_meta_box_data') );
+
 
     add_action( 'wp_ajax_iua_upload_image', array( $this, 'handle_widget_submission' ) );
     add_action( 'wp_ajax_nopriv_iua_upload_image', array( $this, 'handle_widget_submission' ) );
@@ -249,26 +252,53 @@ class Iua_Plugin extends Iua_Core {
     // Add a nonce field so we can check for it later.
     wp_nonce_field(self::NONCE, self::NONCE);
 
-    $iua_settings = get_post_meta( $post->ID, self::PRODUCT_SETTINGS, true );
+    $iua_product_settings = get_post_meta( $post->ID, self::PRODUCT_SETTINGS, true );
    
     $checkbox_value = true; // enable by default. 
     
-    if ( is_array( $iua_settings ) ) {
-      $checkbox_value = $iua_settings['image_generation_enabled'] === false ? 1 : 0;
+    if ( is_array( $iua_product_settings ) ) {
+      $checkbox_value = $iua_product_settings['image_generation_enabled'] === false ? 0 : 1;
     }
+     
+    $fields = array(
+			array(
+				'id'          => 'image_generation_enabled',
+				'name'				=> self::PRODUCT_SETTINGS . '[image_generation_enabled]', 
+				'type'				=> 'checkbox', 
+				'label'				=> 'Enable?', 
+				'default'			=> '',
+				'value'				=> $checkbox_value,
+				'description'	=> 'Enable image generation for this product'
+			),
+			array(
+				'id'          => 'product_prompt_for_generation',
+				'name'				=> self::PRODUCT_SETTINGS . '[product_prompt_for_generation]', 
+				'type'				=> 'textarea', 
+				'cols'				=> 55, 
+				'rows'				=> 4, 
+				'label'				=> 'Prompt',
+				'value'				=> $iua_product_settings['product_prompt_for_generation'],
+				'default'			=> '',
+				'description' => 'Prompt to use for image generation'
+			),
+      array(
+				'id'          => 'product_image_url',
+				'name'				=> self::PRODUCT_SETTINGS . '[product_image_url]', 
+				'type'				=> 'text', 
+				'label'				=> 'Image URL', 
+				'default'			=> '',
+        'size'        => 55,
+				'value'				=> $iua_product_settings['product_image_url'],
+				'description'	=> 'Enter custom image to use as a base for generation (instead of the product featured image)'
+			),
+    );
     
     ?>
 
     <div class="iua-fieldset">
-
-      <label for="image_generation_enabled">Enabled?</label>
-      <?php echo self::make_checkbox_field('image_generation_enabled', $checkbox_value ); ?>
-      <p class="note">Enable image generation for this product</p>
-
-      <label for="product_prompt_for_generation">Prompt</label>
-      <?php echo self::make_textarea_field('product_prompt_for_generation', $iua_settings['product_prompt_for_generation'] ?? '' ); ?>
-      <p class="note">Prompt to use for image generation</p>
-      
+      <table class="form-table">
+				<?php self::display_field_set( $fields ); ?>	
+			</table>
 
       <?php
     }
@@ -286,6 +316,7 @@ class Iua_Plugin extends Iua_Core {
 
     // Verify that the nonce is valid.
     if ( ! wp_verify_nonce( filter_input( INPUT_POST, self::NONCE ), self::NONCE ) ) {
+      
       return;
     }
 
@@ -299,16 +330,19 @@ class Iua_Plugin extends Iua_Core {
 
       // it's safe for us to save the data now
 
-      $iua_settings = filter_input( INPUT_POST, 'iua_settings' );
-
+      $iua_settings = $_POST[self::PRODUCT_SETTINGS ]; 
+        
       if ( is_array( $iua_settings ) ) {
         
         // special case for checkbox
         if ( ! isset( $iua_settings['image_generation_enabled'] ) ) {
           $iua_settings['image_generation_enabled'] = false;
         }
+        else {
+          $iua_settings['image_generation_enabled'] = true;
+        }
 
-        update_post_meta($post_id, self::POSTMETA, $iua_settings );
+        update_post_meta($post_id, self::PRODUCT_SETTINGS, $iua_settings );
       }
     }
   }
