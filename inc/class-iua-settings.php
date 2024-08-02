@@ -25,8 +25,8 @@ class Iua_Settings extends Iua_Core {
     
     if ( isset( $_POST['iua-button'] ) ) {
       
-      $start_date       = filter_input( INPUT_POST, self::FIELD_DATE_START );
-      $end_date         = filter_input( INPUT_POST, self::FIELD_DATE_END );
+      //$start_date       = filter_input( INPUT_POST, self::FIELD_DATE_START );
+      //$end_date         = filter_input( INPUT_POST, self::FIELD_DATE_END );
       
       switch ( $_POST['iua-button'] ) {
         case self::ACTION_SAVE_OPTIONS:
@@ -34,9 +34,33 @@ class Iua_Settings extends Iua_Core {
           $stored_options = get_option( 'iua_options', array() );
           
           foreach ( self::$option_names as $option_name => $option_type ) {
-            $stored_options[ $option_name ] = filter_input( INPUT_POST, $option_name );
+            if ( isset( $_POST[$option_name] ) ) {
+              $stored_options[ $option_name ] = filter_input( INPUT_POST, $option_name );
+            }
           }
           
+          update_option( 'iua_options', $stored_options );
+        break;
+        case self::ACTION_SAVE_KEY:
+         
+          $stored_options = get_option( 'iua_options', array() );
+            
+          $new_key = filter_input( INPUT_POST, 'api_key' );
+
+          if ( $new_key ) {
+            $stored_options[ 'api_key' ] = $new_key;
+            $stored_options[ 'api_status'] = self::check_api_key( $new_key );
+          }
+          
+          update_option( 'iua_options', $stored_options );
+        break;
+        case self::ACTION_DELETE_KEY:
+         
+          $stored_options = get_option( 'iua_options', array() );
+          
+          $stored_options[ 'api_key' ] = '';
+          $stored_options[ 'api_status'] = 'disonnected';
+
           update_option( 'iua_options', $stored_options );
         break;
       }
@@ -90,13 +114,6 @@ class Iua_Settings extends Iua_Core {
         'value'       => self::$option_values['api_url'],
 			),*/
       array(
-				'name'        => "api_key",
-				'type'        => 'text',
-				'label'       => 'Key to use for the image generation API',
-				'default'     => '',
-        'value'       => self::$option_values['api_key'],
-			),
-      array(
 				'name'        => "accounting_time_period",
 				'type'        => 'dropdown',
         'options'     => self::$available_time_periods,
@@ -106,12 +123,29 @@ class Iua_Settings extends Iua_Core {
       )
 		);
     
+    $api_settings_field_set = array(
+      array(
+				'name'        => "api_key",
+				'type'        => 'text',
+				'label'       => 'Key to use for the image generation API',
+				'default'     => '',
+        'value'       => self::$option_values['api_key'],
+			),
+      array(
+				'name'        => "api_status",
+				'type'        => 'text',
+				'label'       => 'STATUS',
+				'default'     => '',
+        'value'       => self::$option_values['api_status'],
+			)
+		);
     ?> 
 
     <form method="POST" >
     
       <h1><?php esc_html_e('Image Generation Dashboard', 'iua'); ?></h1>
       
+      <h2><?php esc_html_e('Settings', 'iua'); ?></h2>
       
       <table class="iua-global-table">
         <tbody>
@@ -120,7 +154,23 @@ class Iua_Settings extends Iua_Core {
       </table>
       
       <p class="submit">  
-       <input type="submit" id="iua-button-save" name="iua-button" class="button button-primary" value="<?php echo self::ACTION_SAVE_OPTIONS; ?>" />
+       <input type="submit" id="iua-button-save" name="iua-button-save" class="button button-primary" style="background: #a52a41; color: white; margin-left: 140px; "value="<?php echo self::ACTION_SAVE_OPTIONS; ?>" />
+      </p>
+    
+    </form>
+
+    <form method="POST" >
+      <h2><?php esc_html_e('API Connection', 'iua'); ?></h2>
+      
+      <table class="iua-global-table">
+        <tbody>
+          <?php self::display_field_set( $api_settings_field_set ); ?>
+        </tbody>
+      </table>
+      
+      <p class="submit">  
+       <input type="submit" id="iua-button-save-api-key" name="iua-button-save-api-key" class="button button-primary" value="<?php echo self::ACTION_SAVE_KEY; ?>" />
+       <input type="submit" id="iua-button-save-api-key" name="iua-button-save-api-key" class="button button-danger" value="<?php echo self::ACTION_DELETE_KEY; ?>" />
       </p>
       
     </form>

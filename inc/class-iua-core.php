@@ -38,6 +38,8 @@ class Iua_Core {
   
   // Actions triggered by buttons in backend area
   public const ACTION_SAVE_OPTIONS = 'Save settings';
+  public const ACTION_SAVE_KEY = 'Save API key';
+  public const ACTION_DELETE_KEY = 'Delete API key';
   
   // Custom upload directory name inside WP_UPLOAD_DIR
   public const UPLOAD_DIR_NAME = 'iua-images';
@@ -61,6 +63,7 @@ class Iua_Core {
   public static $option_names = [
     'api_url'                         => 'string',
     'api_key'                         => 'string',
+    'api_status'                      => 'string',
     'max_free_images_for_public'      => 'integer',
     'max_free_images_for_clients'     => 'integer',
     'accounting_time_period'          => 'string',
@@ -70,6 +73,7 @@ class Iua_Core {
 	public static $default_option_values = [
     'api_url'                         => '',
     'api_key'                         => '',
+    'api_status'                      => '',
     'max_free_images_for_public'      => 50,
     'max_free_images_for_clients'     => 150,
     'accounting_time_period'          => self::DAY,
