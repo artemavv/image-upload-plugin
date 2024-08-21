@@ -198,8 +198,14 @@ class Iua_Plugin extends Iua_Core {
     $client_session_id    = self::get_user_cookie_identifier();
     $client_prompt        = filter_input( INPUT_POST, 'client_prompt' );
     $product_id           = intval( filter_input( INPUT_POST, 'product_id' ) );
-    $product_image_url    = self::get_product_image_url( $product_id ); // filter_input( INPUT_POST, 'product_image' ); // 
-    $product_prompt       = self::get_product_prompt( $product_id ); 
+    
+    $product_settings     = get_post_meta( $product_id, Iua_Core::PRODUCT_SETTINGS, true );
+    
+    
+    $product = wc_get_product( $product_id  );
+    
+    $product_image_url    = self::get_product_image_url( $product, $product_settings ); // filter_input( INPUT_POST, 'product_image' ); // 
+    $product_prompt       = self::get_product_prompt( $product, $product_settings ); 
     
     $final_prompt = $product_prompt . '. ' . $client_prompt;
     
@@ -249,7 +255,7 @@ class Iua_Plugin extends Iua_Core {
     // Add a nonce field so we can check for it later.
     wp_nonce_field(self::NONCE, self::NONCE);
 
-    $iua_product_settings = get_post_meta( $post->ID, self::PRODUCT_SETTINGS, true );
+    $iua_product_settings = (array)get_post_meta( $post->ID, self::PRODUCT_SETTINGS, true );
    
     $checkbox_value = true; // enable by default. 
     
@@ -274,7 +280,7 @@ class Iua_Plugin extends Iua_Core {
 				'cols'				=> 55, 
 				'rows'				=> 4, 
 				'label'				=> 'Prompt',
-				'value'				=> $iua_product_settings['product_prompt_for_generation'],
+				'value'				=> $iua_product_settings['product_prompt_for_generation'] ?? '',
 				'default'			=> '',
 				'description' => 'Prompt to use for image generation'
 			),
@@ -285,7 +291,7 @@ class Iua_Plugin extends Iua_Core {
 				'label'				=> 'Image URL', 
 				'default'			=> '',
         'size'        => 55,
-				'value'				=> $iua_product_settings['product_image_url'],
+				'value'				=> $iua_product_settings['product_image_url'] ?? '',
 				'description'	=> 'Enter custom image to use as a base for generation (instead of the product featured image)'
 			),
     );

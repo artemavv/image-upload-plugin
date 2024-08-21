@@ -474,7 +474,7 @@ EOT;
   
     $image_url = false;
     
-    if ( is_array( $product_settings ) && isset( $product_settings['product_image_url'] ) ) {
+    if ( is_array( $product_settings ) && isset( $product_settings['product_image_url'] ) && $product_settings['product_image_url'] ) {
       $image_url = $product_settings['product_image_url'];
     }
     else {
@@ -613,6 +613,7 @@ EOT;
     }
     elseif ( $client_session_id ) {
       $public_use_stats = get_option( self::OPTION_NAME_STATS_PUBLIC );
+      
       if ( isset( $public_use_stats[$client_session_id] ) ) {
         // TODO record data for the individual user
       }
@@ -630,6 +631,9 @@ EOT;
           $shared_stats[$period]++;
         }
       }
+      
+      $shared_stats['last_use'] = time();
+      
       $public_use_stats['shared'] = $shared_stats;
       
       update_option( self::OPTION_NAME_STATS_PUBLIC, $public_use_stats );
@@ -690,7 +694,7 @@ EOT;
     }
     else {
       $public_use_stats = get_option( self::OPTION_NAME_STATS_PUBLIC );
-      $stats = $stats['shared'];
+      $stats = $public_use_stats['shared'];
     }
 
     return $stats;
@@ -698,9 +702,18 @@ EOT;
 
   public static function calculate_remaining_uses( $stats ) {
 
-    $remaining = 0;
-    $quota = self::$option_values['max_free_images_for_clients'];
+    $user_id = is_user_logged_in() ? get_current_user_id() : 0;
+    
+    if ( $user_id ) {
+      $quota = self::$option_values['max_free_images_for_clients'];
+    }
+    else {
+      $quota = self::$option_values['max_free_images_for_public'];
+    }
+      
 
+    $remaining = $quota;
+    
     $key = self::$option_values['accounting_time_period'];
 
     if ( isset( $stats[$key] ) ) {
