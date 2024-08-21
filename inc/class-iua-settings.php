@@ -23,12 +23,13 @@ class Iua_Settings extends Iua_Core {
     
     $result = '';
     
-    if ( isset( $_POST['iua-button'] ) ) {
+    if ( isset( $_POST['iua-button-save'] ) ) {
       
       //$start_date       = filter_input( INPUT_POST, self::FIELD_DATE_START );
       //$end_date         = filter_input( INPUT_POST, self::FIELD_DATE_END );
       
-      switch ( $_POST['iua-button'] ) {
+      
+      switch ( $_POST['iua-button-save'] ) {
         case self::ACTION_SAVE_OPTIONS:
          
           $stored_options = get_option( 'iua_options', array() );
@@ -69,11 +70,33 @@ class Iua_Settings extends Iua_Core {
     return $result;
   }
   
+  public static function check_api_key ( $api_key ) {
+    
+    $test_product_image_url = "https://www.timberland.com.au/media/catalog/product/cache/51baa2c84f06c1cecdd4dbc499a02b45/a/5/a5wqq.p57_a5wqq_p57_01_1103657.jpg";
+    $test_client_file_url = "https://upload.wikimedia.org/wikipedia/commons/a/a0/George_Lucas_cropped_2009.jpg";
+    $test_prompt =  "Timberland orange top";
+    $client_session_id = 'test' . time();
+    
+    $result = self::request_api( $test_product_image_url, $test_client_file_url, $test_prompt, $client_session_id, $api_key );
+    
+    $json = json_decode( $result, true ); // returns object as an associative array
+
+    
+    //echo('$result<pre>' . print_r($result, 1) . '</pre>');
+    //echo('$json<pre>' . print_r($json, 1) . '</pre>');
+    
+    if ( is_array( $json ) && isset( $json['link'] ) ) {
+      return 'success';
+    }
+    
+    return 'fail';
+  }
+  
 	public static function render_settings_page() {
     
     $action_results = '';
     
-    if ( isset( $_POST['iua-button'] ) ) {
+    if ( isset( $_POST['iua-button-save'] ) ) {
 			$action_results = self::do_action();
 		}
     
@@ -154,7 +177,7 @@ class Iua_Settings extends Iua_Core {
       </table>
       
       <p class="submit">  
-       <input type="submit" id="iua-button-save" name="iua-button-save" class="button button-primary" style="background: #a52a41; color: white; margin-left: 140px; "value="<?php echo self::ACTION_SAVE_OPTIONS; ?>" />
+        <button type="submit" id="iua-button-save" name="iua-button-save" class="button button-primary" value="<?php echo self::ACTION_SAVE_OPTIONS; ?>"><?php echo self::ACTION_SAVE_OPTIONS; ?></button>
       </p>
     
     </form>
@@ -169,8 +192,8 @@ class Iua_Settings extends Iua_Core {
       </table>
       
       <p class="submit">  
-       <input type="submit" id="iua-button-save-api-key" name="iua-button-save-api-key" class="button button-primary" value="<?php echo self::ACTION_SAVE_KEY; ?>" />
-       <input type="submit" id="iua-button-save-api-key" name="iua-button-save-api-key" class="button button-danger" value="<?php echo self::ACTION_DELETE_KEY; ?>" />
+        <button type="submit" id="iua-button-save-api-key" name="iua-button-save" class="button button-primary" value="<?php echo self::ACTION_SAVE_KEY; ?>" /><?php echo self::ACTION_SAVE_KEY; ?></button>
+        <button type="submit" id="iua-button-delete-api-key" name="iua-button-save" class="button button-danger" style="background: #a52a41; color: white; margin-left: 140px; " value="<?php echo self::ACTION_DELETE_KEY; ?>"><?php echo self::ACTION_DELETE_KEY; ?></button>
       </p>
       
     </form>

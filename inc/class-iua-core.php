@@ -717,14 +717,15 @@ EOT;
    * @param string $client_image_url
    * @param string $client_prompt
    * @param string $client_session_id
+   * @param string $api_key Optional custom API key to use
    * @return type
    */
-  public static function request_api( string $product_image_url, string $client_image_url, string $client_prompt, string $client_session_id ) {
+  public static function request_api( string $product_image_url, string $client_image_url, string $client_prompt, string $client_session_id, string $api_key = '' ) {
     
     self::load_options();
     
     $data = [
-      'API_KEY'         => self::$option_values['api_key'],
+      'API_KEY'         => $api_key ? $api_key : self::$option_values['api_key'],
       'sessionId'       => $client_session_id,
       'image'           => $product_image_url,
       'imageClient'     => $client_image_url,
@@ -739,14 +740,20 @@ EOT;
     
     $ch = curl_init();
 
-    curl_setopt($ch, CURLOPT_URL, $request_url);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array( 'Content-Type: application/json' ) );
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $json );
+    curl_setopt( $ch, CURLOPT_URL, $request_url );
+    curl_setopt( $ch, CURLOPT_POST, true );    
+    curl_setopt( $ch, CURLOPT_HTTPHEADER, array( 'Content-Type: application/json' ) );
+    curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
+    curl_setopt( $ch, CURLOPT_POSTFIELDS, $json );
 
     
     $response = curl_exec($ch);
 
+    
+    if ( curl_errno($ch) ) {
+      self::wc_log('request_api(): curl Error --- ' . curl_error($ch) , array( 'errorno' => curl_errno($ch) ) );
+    }
+    
     self::wc_log('request_api(): received response from API', [ 'resp' => $response ] );
     
     curl_close($ch);

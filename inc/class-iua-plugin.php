@@ -218,9 +218,6 @@ class Iua_Plugin extends Iua_Core {
     
       $json = json_decode( $result, true ); // returns object as an associative array
       
-      //echo('TEST');
-
-      //echo $json;
       if ( is_array( $json) ) {
         
         self::record_api_usage_for_product( $product_id, $client_session_id );

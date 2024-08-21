@@ -9,7 +9,7 @@
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Requires at least: 5.4
  * Requires PHP: 7.4
- * Version: 0.1.9
+ * Version: 0.2
  */
 
 /*
@@ -31,7 +31,7 @@
 require_once 'includes.php';
 
 
-define( 'IUA_VERSION', '0.1.9' );
+define( 'IUA_VERSION', '0.2' );
 define( 'IUA_TEXT_DOMAIN', 'image-upload-api' );
 
 
@@ -53,9 +53,3 @@ register_deactivation_hook( $plugin_root, array('Iua_Plugin', 'uninstall' ) );
 /**** Initialise Plugin ****/
 
 $iua_plugin = new Iua_Plugin( $plugin_root );
-
-
-if ( isset($_GET['moo']) ) {
-  Iua_Core::test_request_api();
-  die();
-}
