@@ -580,64 +580,95 @@ EOT;
       /**
        * Data is saved as array with keys: 
        * [
-       *  'day' => number of uses in the current day,
-       *  'month' => number of uses in the current month,
-       *  'week' => week, obviously
-       *  'last_use' => timestamp of the last time API was requested by this user.
+       *  'past_months' - number of uses older than 30 days
+       *  'latest_uses' => timestamps of the last times API was requested by this user.
+       * ]
        */
       $stats = get_user_meta( $user_id, self::USER_META_STATS, true );
 
       if ( ! is_array( $stats ) ) {
-        $stats = array();
+        $stats = array(
+          'past_months' => array(),
+          'latest_uses' => array( time() )
+        );
       }
-      
-      foreach ( self::$available_time_periods as $period => $name ) {
-      
-        $need_to_reset_api_use = ! self::is_current_time_period( $stats['last_use'], $period );
-      
-        if ( $need_to_reset_api_use ) {
-          $stats[$period] = 1; // this was the first API use in the current day (week,month), since previous use was in the previous day (week,month)
-        }
-        else {
-          if ( isset( $stats[$period] ) ) {
-            $stats[$period]++;
-          }else {
-            $stats[$period] = 1;
-          }
-        }
+      else {
+        $stats = self::add_latest_api_use_in_stats( $stats );
       }
-      
-      $stats['last_use'] = time();
       
       update_user_meta( $user_id, self::USER_META_STATS, $stats );
     }
     elseif ( $client_session_id ) {
+      
+      /**
+       * API usage data for anonymous users is saved as array with keys: 
+       * [
+       *  'shared' - number of uses combined, for all users
+       *  $client_session_id => API usage by visitor with that session ID.
+       * ]
+       */
+    
       $public_use_stats = get_option( self::OPTION_NAME_STATS_PUBLIC );
       
       if ( isset( $public_use_stats[$client_session_id] ) ) {
-        // TODO record data for the individual user
+        $public_use_stats[$client_session_id] = self::add_latest_api_use_in_stats( $public_use_stats[$client_session_id] );
+      }
+      else { // API is used by this visitor for the first time, create fresh record
+        $public_use_stats[$client_session_id] = array(
+          'past_months' => array(),
+          'latest_uses' => array( time() )
+        );
       }
       
-      $shared_stats = $public_use_stats['shared'];
-      
-      foreach ( self::$available_time_periods as $period => $name ) {
-      
-        $need_to_reset_api_use = ! self::is_current_time_period( $shared_stats['last_use'], $period );
-      
-        if ( $need_to_reset_api_use ) {
-          $shared_stats[$period] = 1; // this was the first API use in the current day (week,month), since previous use was in the previous day (week,month)
-        }
-        else {
-          $shared_stats[$period]++;
-        }
+      if ( isset( $public_use_stats['shared'] ) ) {
+        $public_use_stats['shared'] = self::add_latest_api_use_in_stats( $public_use_stats['shared'] ) ;
       }
-      
-      $shared_stats['last_use'] = time();
-      
-      $public_use_stats['shared'] = $shared_stats;
+      else {  // API is used for the first time, create fresh record
+        $public_use_stats['shared'] = array(
+          'past_months' => array(),
+          'latest_uses' => array( time() )
+        );
+      }
       
       update_option( self::OPTION_NAME_STATS_PUBLIC, $public_use_stats );
     }
+  }
+  
+  /**
+   * 
+   * @param array $stats
+   */
+  public static function add_latest_api_use_in_stats( $stats ) {
+    
+    // first, count uses that were past 1 month ago
+    $old_uses = $stats['past_months'];
+    $recent_stats = array();
+    
+    $current_time = time();
+    $month = 30 * 24 * 3600; // seconds in a month 
+    
+    if ( isset($stats['latest_uses']) && is_array($stats['latest_uses']) ) {
+      
+      foreach ( $stats['latest_uses'] as $past_use ) { // each record is a timestamp
+        
+        // check if this use was more than a month ago
+        if ( $current_time - $past_use > $month ) {
+          // archive that record, do not keep in the list
+          $old_uses++;
+        }
+        else { // keep recent uses in the list
+          $recent_stats[] = $past_use;
+        }
+        
+      } 
+    }
+    
+    $updated_stats = array(
+      'past_months' => $old_uses,
+      'latest_uses' => $recent_stats
+    );
+    
+    return $updated_stats;
   }
   
   /**
@@ -700,27 +731,58 @@ EOT;
     return $stats;
   }
 
-  public static function calculate_remaining_uses( $stats ) {
+  /**
+   * Find out how many uses are available for the current visitor, for two cases:
+   * 
+   * a) this is a logged-in visitor (registered user)
+   * b) this is an anonymous visitor (unregistered user)
+   * 
+   * @return integer
+   */
+  public static function calculate_remaining_uses() {
 
+    $stats = Iua_Core::get_usage_stats_for_current_user(); // for anonymous users, returns shared stats
+    
     $user_id = is_user_logged_in() ? get_current_user_id() : 0;
     
     if ( $user_id ) {
-      $quota = self::$option_values['max_free_images_for_clients'];
+      $quota = intval( self::$option_values['max_free_images_for_clients'] );
     }
     else {
-      $quota = self::$option_values['max_free_images_for_public'];
+      $quota = intval( self::$option_values['max_free_images_for_public'] );
     }
       
-
-    $remaining = $quota;
-    
-    $key = self::$option_values['accounting_time_period'];
-
-    if ( isset( $stats[$key] ) ) {
-      $remaining = $quota - $stats[$key];
-    }
+    $remaining = self::calculate_quota_balance( $stats, $quota );
     
     return $remaining;
+  }
+  
+  /**
+   * Counts past uses during the accountinng time period (current day, current week, current months)
+   * and returns remaining uses (according to the specified quota)
+   * 
+   * @param array $stats
+   * @param int $quota
+   * @return int
+   */
+  public static function calculate_quota_balance( array $stats, int $quota ) {
+
+    $balance = $quota;
+    
+    $period = self::$option_values['accounting_time_period'];
+
+    if ( isset($stats['latest_uses']) && is_array($stats['latest_uses']) ) {
+      
+      foreach ( $stats['latest_uses'] as $past_use ) { // each record is a timestamp
+        
+        if ( self::is_current_time_period( $past_use, $period ) ) { // check if this timestamp is inside accounting time period (day, week, month)
+          $balance--;
+        }
+        
+      } 
+    }
+    
+    return $balance >= 0 ? $balance : 0;
   }
   
   /**

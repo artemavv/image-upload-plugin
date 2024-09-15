@@ -33,8 +33,7 @@ class Iua_Product_Page_Widget extends WP_Widget {
 
         $user_prompt = ''; // TODO save user prompt and display it on the next page load
 
-        $user_stats = Iua_Core::get_usage_stats_for_current_user();
-        $remaining = Iua_Core::calculate_remaining_uses( $user_stats ) ; // TODO calculate
+        $remaining = Iua_Core::calculate_remaining_uses();
 
         echo $args['before_widget'] . $args['before_title'] . $title . $args['after_title']; ?>
 

@@ -19,10 +19,6 @@ class Iua_Plugin extends Iua_Core {
 
 		add_action( 'plugins_loaded', array( $this, 'initialize'), 10 );
 	  
-    if ( is_admin() ) {
-      add_action( 'admin_enqueue_scripts', array($this, 'register_admin_styles_and_scripts') );
-    }
-    
 		add_action( 'admin_menu', array( 'Iua_Settings', 'add_page_to_menu' ) );
     
     add_action( 'admin_notices', array( $this, 'display_admin_messages' ) );
@@ -30,7 +26,7 @@ class Iua_Plugin extends Iua_Core {
     
     add_action( 'wp_enqueue_scripts', array( $this, 'add_frontend_scripts' ) );
     
-    add_action('admin_enqueue_scripts', array($this, 'add_admin_styles_scripts'));
+    add_action( 'admin_enqueue_scripts', array($this, 'add_admin_styles_scripts'));
     
     add_action( 'add_meta_boxes', array( $this, 'add_wc_product_meta_box' ) );
     
@@ -82,16 +78,6 @@ class Iua_Plugin extends Iua_Core {
   
 	public function register_widgets() {		
     register_widget( 'Iua_Product_Page_Widget' );
-	}
-  
-  public function register_admin_styles_and_scripts() {
-    $file_src = plugins_url( 'css/iua-admin.css', self::$plugin_root );
-    wp_enqueue_style( 'iua-admin', $file_src, array(), IUA_VERSION );
-    
-    wp_enqueue_script( 'iua-admin-js', plugins_url('/js/iua-admin.js', self::$plugin_root), array( 'jquery' ), IUA_VERSION, true );
-    wp_localize_script( 'iua-admin-js', 'scs_settings', array(
-      'ajax_url'			=> admin_url( 'admin-ajax.php' ),
-    ) );
   }
   
   public function add_frontend_scripts( ) {
@@ -107,10 +93,10 @@ class Iua_Plugin extends Iua_Core {
   public function add_admin_styles_scripts() {
     if ( file_exists(IUA_PATH . 'js/iua-admin.js') ) {
       wp_enqueue_script( 'iua-admin', IUA_URL . 'js/iua-admin.js', array( 'jquery' ), IUA_VERSION, true );
-
-      wp_localize_script( 'iua-admin', 'ajaxUrl', admin_url('admin-ajax.php') );
+      wp_localize_script( 'iua-admin', 'iua_settings', array( 'ajax_url'			=> admin_url( 'admin-ajax.php' ) ) );
     }
 
+     
     if ( file_exists(IUA_PATH . 'css/iua-admin.css') ) {
       wp_enqueue_style( 'iua-main', IUA_URL . 'css/iua-admin.css', false, IUA_VERSION );
     }
@@ -257,10 +243,12 @@ class Iua_Plugin extends Iua_Core {
 
     $iua_product_settings = (array)get_post_meta( $post->ID, self::PRODUCT_SETTINGS, true );
    
-    $checkbox_value = true; // enable by default. 
+    $checkbox_value = 1; // enable by default. 
     
     if ( is_array( $iua_product_settings ) ) {
-      $checkbox_value = $iua_product_settings['image_generation_enabled'] === false ? 0 : 1;
+      if ( isset( $iua_product_settings['image_generation_enabled'] ) ) {
+        $checkbox_value = $iua_product_settings['image_generation_enabled'] === false ? 0 : 1;
+      }
     }
      
     $fields = array(
