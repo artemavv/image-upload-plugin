@@ -1,16 +1,15 @@
 <?php
 
+class Iua_File_Handler extends Iua_Core {
 
-class Iua_File_Handler extends Iua_Core { 
-  
   /**
    * Check if our custom directory for file uploads exist.
    * @return bool
    */
   public static function verify_uploads_directory() {
-    return is_dir( self::get_plugin_upload_folder() );
+	return is_dir( self::get_plugin_upload_folder() );
   }
-  
+
   /**
    * When this plugin is activated, we need to create custom directory 
    * to store images uploaded by users.
@@ -18,21 +17,21 @@ class Iua_File_Handler extends Iua_Core {
    * @return boolean
    */
   public static function create_uploads_directory() {
-    
-    $result = false;
-      
-    $plugin_upload_folder = self::get_plugin_upload_folder();
 
-    if ( ! is_dir( $plugin_upload_folder) ) {
+	$result = false;
 
-       $folder_created = wp_mkdir_p( $plugin_upload_folder );
+	$plugin_upload_folder = self::get_plugin_upload_folder();
 
-       if ( $folder_created ) {
-         $result = true;     
-       }
-    }
-    
-    return $result;
+	if ( !is_dir( $plugin_upload_folder ) ) {
+
+	  $folder_created = wp_mkdir_p( $plugin_upload_folder );
+
+	  if ( $folder_created ) {
+		$result = true;
+	  }
+	}
+
+	return $result;
   }
 
   /**
@@ -42,38 +41,37 @@ class Iua_File_Handler extends Iua_Core {
    * $uploaded_file = $_FILES['file'];
    * 
    * $uploaded_file = array(
-			'name' => ...
-			'type' => ...
-			'tmp_name' => ...
-			'error' => ...
-			'size' => ...
-		);
+    'name' => ...
+    'type' => ...
+    'tmp_name' => ...
+    'error' => ...
+    'size' => ...
+    );
    * 
    * @param array $uploaded_file
    * @param string $client_id
    * @return string $file_name
    */
   public static function upload_client_image( $uploaded_file, $client_id ) {
-    
-    $result = false;
-      
-    if ( $uploaded_file['error'] == UPLOAD_ERR_OK ) {
-      
-      $path_parts = pathinfo( $uploaded_file['name'] );
-      
-      $extension = $path_parts['extension'];
 
-      $daily_upload_folder = self::get_plugin_upload_folder() . '/' . date('Y-m-d');
+	$result = false;
 
-      $folder_created = is_dir( $daily_upload_folder) ? true : wp_mkdir_p( $daily_upload_folder );
+	if ( $uploaded_file[ 'error' ] == UPLOAD_ERR_OK ) {
 
-      if ( $folder_created ) {
-        $new_file_name = $client_id . '_' . time() . '.' . $extension;
-        $result = move_uploaded_file( $uploaded_file['tmp_name'], "$daily_upload_folder/$new_file_name" ) ? $new_file_name : false;
-      }
-    }
-    
-    return $result;
+	  $path_parts = pathinfo( $uploaded_file[ 'name' ] );
+
+	  $extension = $path_parts[ 'extension' ];
+
+	  $daily_upload_folder = self::get_plugin_upload_folder() . '/' . date( 'Y-m-d' );
+
+	  $folder_created = is_dir( $daily_upload_folder ) ? true : wp_mkdir_p( $daily_upload_folder );
+
+	  if ( $folder_created ) {
+		$new_file_name = $client_id . '_' . time() . '.' . $extension;
+		$result = move_uploaded_file( $uploaded_file[ 'tmp_name' ], "$daily_upload_folder/$new_file_name" ) ? $new_file_name : false;
+	  }
+	}
+
+	return $result;
   }
-  
 }
