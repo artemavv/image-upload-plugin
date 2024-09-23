@@ -6,14 +6,19 @@ class Iua_Core {
 
   // options key used to save plugin settings
   public const OPTION_NAME_SETTINGS = 'iua_options';
+  
   // options key used to save total generation statistics per product
   public const OPTION_NAME_STATS_PER_PRODUCT = 'iua_statistics_per_product';
+  
   // options key used to save total generation statistics per public use (unregistered users)
   public const OPTION_NAME_STATS_PUBLIC = 'iua_statistics_public';
+  
   // postmeta key used to save generation statistics for each separate product
   public const PRODUCT_META_STATS = 'iua_generation_statistics';
+  
   // postmeta key used to save generation settings for each separate product
   public const PRODUCT_SETTINGS = 'iua_settings';
+  
   // usermeta key used to save generation statistics for each individual user account
   public const USER_META_STATS = 'iua_generation_by_user';
 
@@ -22,16 +27,21 @@ class Iua_Core {
   // names of HTML fields in the form
   public const FIELD_DATE_START = 'report_date_start';
   public const FIELD_DATE_END = 'report_date_end';
+  
   // name of the submit button that triggers POST form
   public const BUTTON_SUMBIT = 'iua-button';
+  
   // used in the admin area in plugin metabox.
   const NONCE = 'iua_metabox_nonce';
+  
   // Actions triggered by buttons in backend area
   public const ACTION_SAVE_OPTIONS = 'Save settings';
   public const ACTION_SAVE_KEY = 'Save API key';
   public const ACTION_DELETE_KEY = 'Delete API key';
+  
   // Custom upload directory name inside WP_UPLOAD_DIR
   public const UPLOAD_DIR_NAME = 'iua-images';
+  
   // Options to use with time period dropdown
   public const DAY = 'day';
   public const WEEK = 'week';
@@ -42,8 +52,11 @@ class Iua_Core {
 	self::WEEK => 'Weekly',
 	self::MONTH => 'Monthly'
   ];
+  
   public static $error_messages = [];
+  
   public static $messages = [];
+  
   public static $option_names = [
 	'api_url' => 'string',
 	'api_key' => 'string',
@@ -53,6 +66,7 @@ class Iua_Core {
 	'accounting_time_period' => 'string',
 	'widget_product_groups' => 'array'
   ];
+  
   public static $default_option_values = [
 	'api_url' => '',
 	'api_key' => '',
@@ -627,6 +641,16 @@ EOT;
 
 	return $updated_stats;
   }
+  
+  public static function is_valid_stats_row( $row ) {
+	if ( is_array( $row ) ) {
+	  if ( isset( $row['latest_uses'] ) && is_array( $row['latest_uses'] ) && isset( $row['past_months'] ) ) {
+		return true;
+	  }
+	}
+	  
+	return false;
+  }
 
   /**
    * Checks if the provided timestamp was taken at the current day/week/month
@@ -692,10 +716,12 @@ EOT;
    * 
    * @return integer
    */
-  public static function calculate_remaining_uses() {
+  public static function calculate_remaining_uses( $stats = false ) {
 
-	$stats = Iua_Core::get_usage_stats_for_current_user(); // for anonymous users, returns shared stats
-
+	if ( false === $stats ) {
+	  $stats = Iua_Core::get_usage_stats_for_current_user(); // for anonymous users, returns shared stats
+	}
+	
 	$user_id = is_user_logged_in() ? get_current_user_id() : 0;
 
 	if ( $user_id ) {
@@ -707,6 +733,45 @@ EOT;
 	$remaining = self::calculate_quota_balance( $stats, $quota );
 
 	return $remaining;
+  }
+  
+  /**
+   * Find out how many uses were in the specified period
+   * 
+   * 
+   * @return integer
+   */
+  public static function calculate_uses_in_period( array $stats, $period ) {
+
+	$count = 0;
+	$start_of_period = self::get_start_of_period( $period );
+	
+	foreach ( $stats['latest_uses'] as $use ) {
+	  if ( $use > $start_of_period ) {
+		$count++;
+	  }
+	}
+
+	return $count;
+  }
+  
+  
+  /**
+   * Returns timestamp for the start of the current day/week/month
+   * 
+   * 
+   * @return integer
+   */
+  public static function get_start_of_period( $period ) {
+	switch ( $period ) {
+	  case self::DAY:
+		return time() - (24 * 3600);
+	  case self::WEEK:
+		return time() - (7 * 24 * 3600);
+	  case self::MONTH:
+	  default: 
+		return time() - (30 * 24 * 3600);
+	}
   }
 
   /**

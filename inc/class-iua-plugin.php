@@ -200,11 +200,11 @@ class Iua_Plugin extends Iua_Core {
 
 	if ( $client_file_url && $product_id && $product_image_url ) {
 
-	  $result = self::request_api( $product_image_url, $client_file_url, $final_prompt, $client_session_id );
+	  //$result = self::request_api( $product_image_url, $client_file_url, $final_prompt, $client_session_id );
 
 	  $json = json_decode( $result, true ); // returns object as an associative array
 
-	  if ( is_array( $json ) ) {
+	  if ( true ) { // ( is_array( $json ) ) {
 
 		self::record_api_usage_for_product( $product_id, $client_session_id );
 		self::record_api_usage_for_user( $client_session_id );

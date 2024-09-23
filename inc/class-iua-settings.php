@@ -357,15 +357,33 @@ class Iua_Settings extends Iua_Core {
 	</thead>
 	<tbody>
 		<?php foreach ( $user_stats as $user_login => $row ): ?>
-		  <?php $remaining_uses = self::calculate_remaining_uses( $row ); ?>
-	  	<tr>
-	  		<td><?php echo $user_login; ?></td>
-	  		<td><?php echo $row[ self::DAY ]; ?></td>
-	  		<td><?php echo $row[ self::WEEK ]; ?></td>
-	  		<td><?php echo $row[ self::MONTH ]; ?></td>
-	  		<td><?php echo date( 'Y-m-d H:i:s', $row[ 'last_use' ] ); ?></td>
-	  		<td><?php echo $remaining_uses; ?></td>
-	  	</tr>
+		  <?php if ( self::is_valid_stats_row( $row) ) : ?>
+			<?php
+			  $remaining_uses = self::calculate_remaining_uses( $row ); 
+
+			  $today = self::calculate_uses_in_period( $row, self::DAY ); 
+			  $this_week = self::calculate_uses_in_period( $row, self::WEEK ); 
+			  $this_month = self::calculate_uses_in_period( $row, self::MONTH ); 
+
+			?>
+		  <tr>
+			  <td><?php echo $user_login; ?></td>
+			  <td><?php echo $today; ?></td>
+			  <td><?php echo $this_week; ?></td>
+			  <td><?php echo $this_month; ?></td>
+			  <td><?php echo date( 'Y-m-d H:i:s', array_pop( $row['latest_uses'] ) ); ?></td>
+			  <td><?php echo $remaining_uses; ?></td>
+		  </tr>
+		  <?php else: ?>
+		  <tr>
+			  <td><?php echo $user_login; ?></td>
+			  <td>?</td>
+			  <td>?</td>
+			  <td>?</td>
+			  <td>?</td>
+			  <td>?</td>
+		  </tr>
+		  <?php endif; ?>
 		<?php endforeach; ?>
 	</tbody>
 	</table>
