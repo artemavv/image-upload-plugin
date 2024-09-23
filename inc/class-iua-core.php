@@ -39,6 +39,8 @@ class Iua_Core {
   public const ACTION_SAVE_KEY = 'Save API key';
   public const ACTION_DELETE_KEY = 'Delete API key';
   
+  public const ACTION_GENERATE_TEST_STATS = 'Make test stats';
+  
   // Custom upload directory name inside WP_UPLOAD_DIR
   public const UPLOAD_DIR_NAME = 'iua-images';
   
@@ -520,7 +522,8 @@ EOT;
   public static function record_api_usage_for_product( int $product_id, string $client_session_id ) {
 
 	// Save total API usage
-
+	// TODO: is this stats even used anywhere? 
+	
 	$stats = get_option( self::OPTION_NAME_STATS_PER_PRODUCT, array() );
 	$current_api_usage_for_product = $stats[ $product_id ] ?? 0;
 	$stats[ $product_id ] = $current_api_usage_for_product + 1;
@@ -556,25 +559,8 @@ EOT;
 
 	if ( $user_id ) {
 
-	  /**
-	   * Data is saved as array with keys: 
-	   * [
-	   *  'past_months' - number of uses older than 30 days
-	   *  'latest_uses' => timestamps of the last times API was requested by this user.
-	   * ]
-	   */
-	  $stats = get_user_meta( $user_id, self::USER_META_STATS, true );
-
-	  if ( !is_array( $stats ) ) {
-		$stats = array(
-		  'past_months' => array(),
-		  'latest_uses' => array(time())
-		);
-	  } else {
-		$stats = self::add_latest_api_use_in_stats( $stats );
-	  }
-
-	  update_user_meta( $user_id, self::USER_META_STATS, $stats );
+	  self::record_api_usage_for_registered_user( $user_id );
+	  
 	} elseif ( $client_session_id ) {
 
 	  /**
@@ -590,7 +576,7 @@ EOT;
 		$public_use_stats[ $client_session_id ] = self::add_latest_api_use_in_stats( $public_use_stats[ $client_session_id ] );
 	  } else { // API is used by this visitor for the first time, create fresh record
 		$public_use_stats[ $client_session_id ] = array(
-		  'past_months' => array(),
+		  'past_months' => 0,
 		  'latest_uses' => array(time())
 		);
 	  }
@@ -599,7 +585,7 @@ EOT;
 		$public_use_stats[ 'shared' ] = self::add_latest_api_use_in_stats( $public_use_stats[ 'shared' ] );
 	  } else { // API is used for the first time, create fresh record
 		$public_use_stats[ 'shared' ] = array(
-		  'past_months' => array(),
+		  'past_months' => 0,
 		  'latest_uses' => array(time())
 		);
 	  }
@@ -607,9 +593,78 @@ EOT;
 	  update_option( self::OPTION_NAME_STATS_PUBLIC, $public_use_stats );
 	}
   }
+  
+  /**
+   * Records a new event of API usage in stats, for two cases:
+   * 
+   * a) assuming that time of use was now: $time = false
+   * b) at arbitrary time in the past: $time = timestamp
+   * 
+   * @param int $user_id
+   * @param int $time
+   */
+  public static function record_api_usage_for_registered_user( string $user_id, $time = false ) {
+	
+	/**
+	 * Data is saved as array with keys: 
+	 * [
+	 *  'past_months' => number of uses older than 30 days
+	 *  'latest_uses' => timestamps of the last times API was requested by this user.
+	 * ]
+	 */
+	$stats = get_user_meta( $user_id, self::USER_META_STATS, true );
+
+	$stats_created = is_array( $stats ) && isset( $stats[ 'latest_uses' ] ) && is_array( $stats[ 'latest_uses' ] );
+			
+	if ( ! $time ) { // the time of use was just now
+	  if ( ! $stats_created ) { // need to create a fresh stats
+		$stats = array(
+		  'past_months' => 0,
+		  'latest_uses' => array( time() )
+		);
+	  } else {
+		$stats = self::add_latest_api_use_in_stats( $stats );
+	  }
+	  
+	  update_user_meta( $user_id, self::USER_META_STATS, $stats );
+	}
+	else { // the time of use was somewhere in the past
+	  
+	  $month = 30 * 24 * 3600; // seconds in a month 
+
+	  if ( time() - $time > $month ) { // need to record usage earlier than a month
+
+		if ( ! $stats_created ) { // need to create a fresh stats
+		  $updated_stats = array(
+			'past_months' => 1,
+			'latest_uses' => array()
+		  );
+		}
+		else { // need to update existing stats
+		  $updated_stats = array(
+			'past_months' => $stats['past_months'] + 1, //  usage event was earlier than a month
+			'latest_uses' => $stats['latest_uses']
+		  );
+		}
+	  }
+	  else {  // need to record an usage event within the last month
+		if ( ! $stats_created ) {
+		  $updated_stats = array(
+			'past_months' => 0,
+			'latest_uses' => array( $time )
+		  );
+		} else {
+		  $updated_stats = $stats;
+		  array_push( $updated_stats['latest_uses'], $time );
+		}
+	  }
+
+	  update_user_meta( $user_id, self::USER_META_STATS, $updated_stats );
+	}
+  }
 
   /**
-   * 
+   * Records a new event of API usage in stats, assuming that time of use was now.
    * @param array $stats
    */
   public static function add_latest_api_use_in_stats( $stats ) {
@@ -632,6 +687,8 @@ EOT;
 		  $recent_stats[] = $past_use;
 		}
 	  }
+	  
+	  $recent_stats[] = time(); // add the latest use
 	}
 
 	$updated_stats = array(

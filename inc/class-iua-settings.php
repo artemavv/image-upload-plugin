@@ -64,10 +64,81 @@ class Iua_Settings extends Iua_Core {
 
 		  update_option( 'iua_options', $stored_options );
 		  break;
+		
+		case self::ACTION_GENERATE_TEST_STATS:
+		  
+		  $users = get_users( [ 'number' => 10, 'fields' => 'ID' ] );
+		  
+		  $mean = intval(filter_input( INPUT_POST, 'mean_generations_per_day' ));
+		  
+		  $product_ids = array_map('intval', explode(',', $_POST['products_to_use_for_test']));
+		  
+		  $product_names = [];
+		  
+		  foreach ( $product_ids as $product_id ) {
+			$product_names[] = get_the_title($product_id);
+			
+			self::generate_test_stats_for_product( $product_id, $mean, $users );
+			
+		  }
+		  $message = "Create $mean generations (on average) per day for past 2 months, for products: " . implode(',' , $product_names);
+		  
+		  $result .= '<div class="notice-info notice is-dismissible"><p>'
+				. '<strong>'
+				. $message
+				. '</strong></p>'
+				. '<button type="button" class="notice-dismiss"><span class="screen-reader-text">Dismiss this notice.</span></button>'
+				. '</div>';
+		  
+		  break;
 	  }
 	}
 
 	return $result;
+  }
+  
+  /**
+   * Creates $mean generations (on average) per day for past 2 months, for specified product
+   * 
+   * @param int $product_id
+   * @param int $mean
+   * @param array $users
+   */
+  public static function generate_test_stats_for_product( int $product_id, int $mean, array $users ) {
+	
+	$test_stats = [];
+	$now = time();
+	
+	// For each day in past 2 months
+	for ( $days = 0; $days < 60; $days++ ) {
+	  
+	  $user_id = $users[ array_rand( $users, 1 ) ];
+	  
+	  $client_session_id = 'test_' . $user_id;
+	  
+	  $max = $mean + 2;
+	  $min = ($mean - 2) < 0 ? 0 : $mean - 2;
+	  
+	  $count = rand( $min, $max );
+	  
+	  
+	  // Generate usage records for that day
+	  for ( $i = 1; $i < $count; $i++ ) {
+		$time = $now - $days * ( 24 * 3600 ) - rand(400, 72000);
+		$date = date( 'Y-m-d', $time );		
+		
+		if ( ! isset($test_stats[ $date ]) ) {
+		  $test_stats[ $date ] = array();
+		}
+		
+		// Save the generated record
+		$test_stats[ $date ][] = $client_session_id . '_' . $time;
+		
+		Iua_Core::record_api_usage_for_registered_user( $user_id, $time );
+	  }
+	}
+	
+	update_post_meta( $product_id, self::PRODUCT_META_STATS, $test_stats );
   }
 
   public static function check_api_key( $api_key ) {
@@ -103,6 +174,7 @@ class Iua_Settings extends Iua_Core {
 	self::load_options();
 
 	self::render_settings_form();
+	self::render_usage_generation_form();
 	self::render_product_statistics();
 	self::render_user_statistics();
   }
@@ -126,13 +198,13 @@ class Iua_Settings extends Iua_Core {
 		'value' => self::$option_values[ 'max_free_images_for_clients' ],
 		'description' => 'Limit for each registered user is reset every ' . self::$option_values[ 'accounting_time_period' ]
 	  ),
-	  /* array(
+	  array(
 	    'name'        => "api_url",
 	    'type'        => 'text',
 	    'label'       => 'Full URL to the image generation API',
 	    'default'     => '',
 	    'value'       => self::$option_values['api_url'],
-	    ), */
+	    ),
 	  array(
 		'name' => "accounting_time_period",
 		'type' => 'dropdown',
@@ -196,6 +268,47 @@ class Iua_Settings extends Iua_Core {
 	</form>
 	<?php
   }
+
+  
+  public static function render_usage_generation_form() {
+
+	$test_stats_field_set = array(
+	  array(
+		'name' => "mean_generations_per_day",
+		'type' => 'number',
+		'label' => 'How many image generations to add per day',
+		'default' => '',
+		'value' => '0',
+	  ),
+	  array(
+	    'name'        => "products_to_use_for_test",
+	    'type'        => 'text',
+	    'label'       => 'Products ID to use for test',
+	    'default'     => '',
+	    'value'       => '',
+	  )
+	);
+	?> 
+
+	<form method="POST" >
+
+		<h2><?php esc_html_e( 'Generate test statistics', 'iua' ); ?></h2>
+
+		<table class="iua-global-table">
+			<tbody>
+				<?php self::display_field_set( $test_stats_field_set ); ?>
+			</tbody>
+		</table>
+
+		<p class="submit">  
+			<button type="submit" id="iua-button-save" name="iua-button-save" class="button button-primary" value="<?php echo self::ACTION_GENERATE_TEST_STATS; ?>"><?php echo self::ACTION_GENERATE_TEST_STATS; ?></button>
+		</p>
+
+	</form>
+
+	<?php
+  }
+
 
   /**
    * Gets raw product statistics 
