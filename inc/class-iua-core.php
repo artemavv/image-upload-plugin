@@ -741,6 +741,11 @@ EOT;
 		return $result;
 	}
 
+	/**
+	 * Retrieves stats for the API use by current visitor
+	 * 
+	 * @return array
+	 */
 	public static function get_usage_stats_for_current_user() {
 
 		$user_id = is_user_logged_in() ? get_current_user_id() : 0;
@@ -750,10 +755,30 @@ EOT;
 			// @see record_api_usage_for_user() for comments
 			$stats = get_user_meta( $user_id, self::USER_META_STATS, true );
 		} else {
-			$public_use_stats = get_option( self::OPTION_NAME_STATS_PUBLIC );
-			$stats = $public_use_stats['shared'];
+			$stats = self::get_unregistered_users_statistics();
 		}
 
+		return $stats;
+	}
+	
+	/**
+	 * Retrieves stats for the shared use by unregistered visitors
+	 * 
+	 * @return array
+	 */
+	public static function get_unregistered_users_statistics() {
+		$public_use_stats = get_option( self::OPTION_NAME_STATS_PUBLIC );
+		
+		if ( is_array($public_use_stats) || isset($public_use_stats['shared']) ) {
+			$stats = $public_use_stats['shared'];
+		}
+		else { // data is missing, return empry stats structure
+			$stats = array(
+				'past_months' => 0,
+				'latest_uses' => array()
+			);
+		}
+		
 		return $stats;
 	}
 
@@ -779,6 +804,9 @@ EOT;
 			$quota = intval( self::$option_values['max_free_images_for_public'] );
 		}
 
+		echo('7777');
+		
+		echo('<pre>' . print_r( $stats , 1 ) . '</pre>' );
 		$remaining = self::calculate_quota_balance( $stats, $quota );
 
 		return $remaining;

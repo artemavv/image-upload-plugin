@@ -365,7 +365,6 @@ class Iua_Settings extends Iua_Core {
 	$sql_results = $wpdb->get_results( $query_sql, ARRAY_A );
 
 	foreach ( $sql_results as $row ) {
-
 	  $user_stats[ $row[ 'user_login' ] ] = unserialize( $row[ 'stats' ] );
 	}
 
@@ -453,6 +452,10 @@ class Iua_Settings extends Iua_Core {
 
 	// returns array ( userd_id => user_stats )
 	$user_stats = self::get_users_statistics();
+	
+	$quota_clients = self::$option_values['max_free_images_for_clients'];
+	$quota_public = self::$option_values['max_free_images_for_public'];
+	
 	?>
 
 	<h2><?php esc_html_e( 'Statistics by user', 'iua' ); ?></h2>
@@ -472,7 +475,7 @@ class Iua_Settings extends Iua_Core {
 		<?php foreach ( $user_stats as $user_login => $row ): ?>
 		  <?php if ( self::is_valid_stats_row( $row) ) : ?>
 			<?php
-			  $remaining_uses = self::calculate_remaining_uses( $row ); 
+			  $remaining_uses = self::calculate_quota_balance( $row, $quota_clients );
 
 			  $today = self::calculate_uses_in_period( $row, self::DAY ); 
 			  $this_week = self::calculate_uses_in_period( $row, self::WEEK ); 
@@ -498,6 +501,26 @@ class Iua_Settings extends Iua_Core {
 		  </tr>
 		  <?php endif; ?>
 		<?php endforeach; ?>
+		<?php 
+		
+			/* Special case: shared stats for unregisteted visitors */ 
+		
+			$unr_row = self::get_unregistered_users_statistics();
+			$unr_remaining_uses = self::calculate_quota_balance( $unr_row, $quota_clients );
+
+			$unr_today = self::calculate_uses_in_period( $unr_row, self::DAY ); 
+			$unr_this_week = self::calculate_uses_in_period( $unr_row, self::WEEK ); 
+			$unr_this_month = self::calculate_uses_in_period( $unr_row, self::MONTH ); 
+
+		?>
+			<tr>
+			  <td>Unregistered</td>
+			  <td><?php echo $unr_today; ?></td>
+			  <td><?php echo $unr_this_week; ?></td>
+			  <td><?php echo $unr_this_month; ?></td>
+			  <td><?php echo date( 'Y-m-d H:i:s', array_pop( $unr_row['latest_uses'] ) ); ?></td>
+			  <td><?php echo $unr_remaining_uses; ?></td>
+		  </tr>
 	</tbody>
 	</table>
 
