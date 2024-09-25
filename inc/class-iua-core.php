@@ -527,7 +527,7 @@ EOT;
 		$stats[$product_id] = $current_api_usage_for_product + 1;
 		update_option( self::OPTION_NAME_STATS_PER_PRODUCT, $stats );
 
-		$date = date( 'Y-m-d', strtotime( "-1 day" ) );
+		$date = date( 'Y-m-d' );
 
 		// Save API usage for the specified product and date
 		$product_stats = get_post_meta( $product_id, self::PRODUCT_META_STATS, true );
@@ -804,9 +804,6 @@ EOT;
 			$quota = intval( self::$option_values['max_free_images_for_public'] );
 		}
 
-		echo('7777');
-		
-		echo('<pre>' . print_r( $stats , 1 ) . '</pre>' );
 		$remaining = self::calculate_quota_balance( $stats, $quota );
 
 		return $remaining;
