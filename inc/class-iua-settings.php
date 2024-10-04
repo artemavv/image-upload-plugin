@@ -517,13 +517,16 @@ class Iua_Settings extends Iua_Core {
 		$unr_today = self::calculate_uses_in_period( $unr_row, self::DAY );
 		$unr_this_week = self::calculate_uses_in_period( $unr_row, self::WEEK );
 		$unr_this_month = self::calculate_uses_in_period( $unr_row, self::MONTH );
+		
+		$latest = isset( $unr_row['latest_uses'] ) ? date( 'Y-m-d H:i:s', array_pop( $unr_row['latest_uses'] ) ) : '?'; 
+		
 		?>
 				<tr>
 						<td>Unregistered</td>
 						<td><?php echo $unr_today; ?></td>
 						<td><?php echo $unr_this_week; ?></td>
 						<td><?php echo $unr_this_month; ?></td>
-						<td><?php echo date( 'Y-m-d H:i:s', array_pop( $unr_row['latest_uses'] ) ); ?></td>
+						<td><?php echo $latest; ?></td>
 						<td><?php echo $unr_remaining_uses; ?></td>
 				</tr>
 		</tbody>

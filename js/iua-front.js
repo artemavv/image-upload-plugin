@@ -1,5 +1,17 @@
 jQuery(document).ready(function(){
 
+	function adjustContainer() {
+		const container = document.querySelector('#iua-image-container');
+		const baseImage = container.querySelector('#iua-product-image');
+
+		
+		// Set container height to match the actual rendered height of the base image
+		container.style.height = `${baseImage.offsetHeight}px`;
+		
+	}
+
+	// Run on page load
+	adjustContainer();
 
 	jQuery(document).on('click', '.iua-submit', function( e ){
 
@@ -15,7 +27,7 @@ jQuery(document).ready(function(){
 			requestImageUpload(product_id, client_prompt, file_data, $spinner, $product_image);
 		}
 		else {
-			alert('Please select image to upload');
+			alert('Please select image to upload');	
 		}
 	});
 
@@ -67,5 +79,5 @@ jQuery(document).ready(function(){
 			},
 			dataType: 'json'
 		});
-	}
+	};
 });
