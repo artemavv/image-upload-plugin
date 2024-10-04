@@ -28,6 +28,8 @@ class Iua_Product_Page_Widget extends WP_Widget {
 			if ( $product_settings['image_generation_enabled'] ?? false || $product_settings === false ) {
 
 				$product_image_url = Iua_Core::get_product_image_url( $product, $product_settings );
+				$spinner_image_url = plugins_url( 'spinner.png', Iua_Core::$plugin_root );
+				
 				$product_prompt = Iua_Core::get_product_prompt( $product, $product_settings ); //esc_html( trim( strip_tags( $product->get_short_description() ) ) ); //esc_html( $product->get_description() );
 
 				$user_prompt = ''; // TODO save user prompt and display it on the next page load
@@ -42,7 +44,10 @@ class Iua_Product_Page_Widget extends WP_Widget {
 					<!--<span id="iua-spinner">PLEASE WAIT MERRILY</span>-->
 						<input type="hidden" id="iua-product-prompt" name="iua-product-prompt" value="<?php echo $product_prompt; ?>" />
 						<input type="hidden" id="iua-product-id" name="iua-product-id" value="<?php echo $product_id; ?>" />
-						<img id="iua-product-image" src="<?php echo $product_image_url; ?> " />
+						<div id="iua-image-container">
+							<img id="iua-product-image" src="<?php echo $product_image_url; ?>" />
+							<img id="iua-spinner" src="<?php echo $spinner_image_url; ?>" alt="Waiting...">
+						</div>
 						<?php if ( $prompt_length > 0 ): ?>
 							<div style="padding-top:10px;">
 									<label for="iua-user-prompt">Enter your prompt (max <?php echo $prompt_length; ?> characters)</label><br>

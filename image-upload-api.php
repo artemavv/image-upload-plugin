@@ -9,7 +9,7 @@
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Requires at least: 5.4
  * Requires PHP: 7.4
- * Version: 0.2.6
+ * Version: 0.2.7
  */
 /*
   This program is free software; you can redistribute it and/or modify
@@ -38,7 +38,7 @@ if ( !defined( 'IUA_PATH' ) ) {
 
 require_once 'includes.php';
 
-define( 'IUA_VERSION', '0.2.6' );
+define( 'IUA_VERSION', '0.2.7' );
 define( 'IUA_TEXT_DOMAIN', 'image-upload-api' );
 
 $plugin_root = __FILE__;

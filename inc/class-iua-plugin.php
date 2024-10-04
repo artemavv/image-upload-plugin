@@ -89,6 +89,10 @@ class Iua_Plugin extends Iua_Core {
 			'error_image_src'     => plugins_url( 'error-something-went-wrong.webp', self::$plugin_root )
 		);
 		wp_localize_script( $script_id, 'iua_settings', $script_settings );
+		
+		if ( file_exists( IUA_PATH . 'css/iua-front.css' ) ) {
+			wp_enqueue_style( 'iua-front', IUA_URL . 'css/iua-front.css', false, IUA_VERSION );
+		}
 	}
 
 	public function add_admin_styles_scripts() {

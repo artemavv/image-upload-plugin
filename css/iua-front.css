@@ -1,0 +1,20 @@
+
+#iua-image-container {
+    position: relative;
+    min-height: 330px;
+}
+
+
+img#iua-product-image {
+    position: absolute;
+}
+
+img#iua-spinner {
+    display:none;
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    top: 43%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
