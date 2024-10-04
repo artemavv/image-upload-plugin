@@ -888,11 +888,11 @@ EOT;
 		self::load_options();
 
 		$data = [
-			'API_KEY' => $api_key ? $api_key : self::$option_values['api_key'],
-			'sessionId' => $client_session_id,
-			'image' => $product_image_url,
-			'imageClient' => $client_image_url,
-			'txt' => $client_prompt
+			'API_KEY'       => $api_key ? $api_key : self::$option_values['api_key'],
+			'sessionId'     => $client_session_id,
+			'image'         => $product_image_url,
+			'imageClient'   => $client_image_url,
+			'txt'           => $client_prompt
 		];
 
 		$request_url = self::$option_values['api_url'];

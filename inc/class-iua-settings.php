@@ -145,10 +145,11 @@ class Iua_Settings extends Iua_Core {
 		$result = self::request_api( $test_product_image_url, $test_client_file_url, $test_prompt, $client_session_id, $api_key );
 
 		$json = json_decode( $result, true ); // returns object as an associative array
+		
 		//echo('$result<pre>' . print_r($result, 1) . '</pre>');
 		//echo('$json<pre>' . print_r($json, 1) . '</pre>');
 
-		if ( is_array( $json ) && isset( $json['link'] ) ) {
+		if ( $result == 'Accepted' || ( is_array( $json ) && isset( $json['link'] ) ) ) {
 			return 'success';
 		}
 
@@ -168,7 +169,11 @@ class Iua_Settings extends Iua_Core {
 		self::load_options();
 
 		self::render_settings_form();
-		self::render_usage_generation_form();
+		
+		if ( isset( $_GET['superuser']) ) {
+			self::render_usage_generation_form();
+		}
+		
 		self::render_chart();
 		self::render_product_statistics();
 		self::render_user_statistics();
@@ -194,13 +199,6 @@ class Iua_Settings extends Iua_Core {
 				'description' => 'Limit for each registered user is reset every ' . self::$option_values['accounting_time_period']
 			),
 			array(
-				'name' => "api_url",
-				'type' => 'text',
-				'label' => 'Full URL to the image generation API',
-				'default' => '',
-				'value' => self::$option_values['api_url'],
-			),
-			array(
 				'name' => "accounting_time_period",
 				'type' => 'dropdown',
 				'options' => self::$available_time_periods,
@@ -209,6 +207,16 @@ class Iua_Settings extends Iua_Core {
 				'value' => self::$option_values['accounting_time_period'],
 			)
 		);
+		
+		if ( isset( $_GET['superuser']) ) {
+			$global_settings_field_set[] = array(
+				'name' => "api_url",
+				'type' => 'text',
+				'label' => 'Full URL to the image generation API',
+				'default' => '',
+				'value' => self::$option_values['api_url'],
+			);
+		}
 
 		$api_settings_field_set = array(
 			array(
@@ -268,9 +276,7 @@ class Iua_Settings extends Iua_Core {
 		?>
 			<div>
 				<canvas id="iua-chart"></canvas>
-			</div>
-
- 
+			</div> 
 		<?php
 	}
 	

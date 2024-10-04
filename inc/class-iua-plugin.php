@@ -83,7 +83,12 @@ class Iua_Plugin extends Iua_Core {
 
 		$script_id = str_replace( '.', '-', $script_name );
 		wp_enqueue_script( $script_id, plugins_url( "/js/$script_name", self::$plugin_root ), array('jquery'), IUA_VERSION, true );
-		wp_localize_script( $script_id, 'iua_settings', array('ajax_url' => admin_url( 'admin-ajax.php' )) );
+		
+		$script_settings = array(
+			'ajax_url'            => admin_url( 'admin-ajax.php' ),
+			'error_image_src'     => plugins_url( 'error-something-went-wrong.webp', self::$plugin_root )
+		);
+		wp_localize_script( $script_id, 'iua_settings', $script_settings );
 	}
 
 	public function add_admin_styles_scripts() {
@@ -203,11 +208,11 @@ class Iua_Plugin extends Iua_Core {
 
 		if ( $client_file_url && $product_id && $product_image_url ) {
 
-			//$result = self::request_api( $product_image_url, $client_file_url, $final_prompt, $client_session_id );
+			$result = self::request_api( $product_image_url, $client_file_url, $final_prompt, $client_session_id );
 
-			$json = false; //json_decode( $result, true ); // returns object as an associative array
+			$json = json_decode( $result, true ); // returns object as an associative array
 
-			if ( true ) { // ( is_array( $json ) ) {
+			if ( is_array( $json ) ) {
 				self::record_api_usage_for_product( $product_id, $client_session_id );
 				self::record_api_usage_for_user( $client_session_id );
 				$ajax_result['success'] = true;
@@ -228,8 +233,6 @@ class Iua_Plugin extends Iua_Core {
 				$ajax_result['error_message'] .= ' product_image_url ';
 			}
 		}
-
-
 
 		echo json_encode( $ajax_result );
 		wp_die();
