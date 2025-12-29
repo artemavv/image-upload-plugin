@@ -1,6 +1,3 @@
-# Image Upload API
-Wordpress plugin to add WooCommerce widget for customer image generation
-
 # Plugin overview
 The purpose of this plugin is to allow site visitors in a WooCommerce store  to generate their own images.
 
